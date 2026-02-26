@@ -47,7 +47,9 @@ export default function LoginPage() {
 
       <div className='login-card'>
         <div className='login-logo'>
-          <div className='login-logo-badge'>ISTS</div>
+          <div className='login-logo-badge'>
+            <img src='/logo.png' alt='ISTS Logo' />
+          </div>
           <div className='login-tagline'>
             Login to the ISTS course provider secure Area
           </div>

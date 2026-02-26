@@ -38,7 +38,7 @@ export default async function DashboardPage() {
     },
     { label: 'Total Trainers', value: stats.totalTrainers, href: '/trainers' },
     {
-      label: 'ATC Upload Documents',
+      label: 'ATP Upload Documents',
       value: stats.atcUploadDocuments,
       href: '/deposit',
     },
