@@ -1211,10 +1211,12 @@ img {
   opacity: 0.85;
 }
 .icon-btn-blue {
+  padding: 4px;
   background: var(--blue-500);
   color: var(--white);
 }
 .icon-btn-orange {
+  padding: 4px;
   background: var(--orange-500);
   color: var(--white);
 }

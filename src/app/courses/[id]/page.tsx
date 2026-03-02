@@ -164,13 +164,33 @@ export default async function CourseDetailPage({
                           className='icon-btn icon-btn-blue'
                           title='Print'
                         >
-                          🖨
+                          <svg
+                            xmlns='http://www.w3.org/2000/svg'
+                            width='200'
+                            height='200'
+                            viewBox='0 0 256 256'
+                          >
+                            <path
+                              fill='currentColor'
+                              d='M240 96v80a8 8 0 0 1-8 8h-32v32a8 8 0 0 1-8 8H64a8 8 0 0 1-8-8v-32H24a8 8 0 0 1-8-8V96c0-13.23 11.36-24 25.33-24H56V40a8 8 0 0 1 8-8h128a8 8 0 0 1 8 8v32h14.67C228.64 72 240 82.77 240 96ZM72 72h112V48H72Zm112 88H72v48h112Zm16-44a12 12 0 1 0-12 12a12 12 0 0 0 12-12Z'
+                            />
+                          </svg>
                         </button>
                         <button
                           className='icon-btn icon-btn-orange'
                           title='Certificate'
                         >
-                          📜
+                          <svg
+                            xmlns='http://www.w3.org/2000/svg'
+                            width='200'
+                            height='200'
+                            viewBox='0 0 256 256'
+                          >
+                            <path
+                              fill='currentColor'
+                              d='M224 120v88a16 16 0 0 1-16 16H48a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h88a8 8 0 0 1 0 16H48v160h160v-88a8 8 0 0 1 16 0Zm5.66-50.34l-96 96A8 8 0 0 1 128 168H96a8 8 0 0 1-8-8v-32a8 8 0 0 1 2.34-5.66l96-96a8 8 0 0 1 11.32 0l32 32a8 8 0 0 1 0 11.32Zm-17-5.66L192 43.31L179.31 56L200 76.69Z'
+                            />
+                          </svg>
                         </button>
                       </div>
                     </td>
