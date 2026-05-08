@@ -3,8 +3,9 @@ import { redirect, notFound } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
 import PurchaseForm from './PurchaseForm'
 
-export default async function PurchasePage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function PurchasePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -12,11 +13,11 @@ export default async function PurchasePage({ params }: { params: { id: string } 
   const { data: course } = await supabase
     .from('courses')
     .select('*, course_type:course_types(title,price,validity_days,purchase_fee)')
-    .eq('id', params.id).eq('atc_id', user.id).single()
+    .eq('id', id).eq('atc_id', user.id).single()
   if (!course) notFound()
 
   const { count: numStudents } = await supabase
-    .from('candidates').select('*', { count: 'exact', head: true }).eq('course_id', params.id)
+    .from('candidates').select('*', { count: 'exact', head: true }).eq('course_id', id)
 
   const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
   const students = numStudents ?? 0
@@ -51,7 +52,7 @@ export default async function PurchasePage({ params }: { params: { id: string } 
         <div className="card-header">Order Summary & Payment</div>
         <div className="card-body">
           <PurchaseForm
-            courseId={params.id}
+            courseId={id}
             userId={user.id}
             courseName={course.course_title}
             coursePrice={coursePrice}

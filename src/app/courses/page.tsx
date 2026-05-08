@@ -5,8 +5,9 @@ import AppLayout from '@/components/AppLayout'
 import CoursesTable from './CoursesTable'
 import { getCachedProfile, getCachedCourses } from '@/lib/data'
 
-export default async function CoursesPage({ searchParams }: { searchParams: { filter?: string } }) {
-  const supabase = createClient()
+export default async function CoursesPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+  const { filter } = await searchParams
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -15,8 +16,8 @@ export default async function CoursesPage({ searchParams }: { searchParams: { fi
     getCachedCourses(user.id),
   ])
 
-  const courses = searchParams.filter
-    ? allCourses.filter((c: any) => c.status === searchParams.filter)
+  const courses = filter
+    ? allCourses.filter((c: any) => c.status === filter)
     : allCourses
 
   const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
@@ -29,7 +30,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: { fi
       </div>
       <div className="card">
         <div className="card-header">
-          {searchParams.filter ? `Courses — ${searchParams.filter}` : 'All Courses'}
+          {filter ? `Courses — ${filter}` : 'All Courses'}
         </div>
         <CoursesTable courses={courses ?? []} />
       </div>

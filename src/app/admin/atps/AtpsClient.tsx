@@ -1,19 +1,101 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/lib/types'
 
 export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
   const supabase = createClient()
+  const router = useRouter()
   const [atps, setAtps] = useState<Profile[]>(initial)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState<string | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+
+  // Add-ATP form state
+  const [newEmail, setNewEmail] = useState('')
+  const [newFullName, setNewFullName] = useState('')
+  const [newAtcName, setNewAtcName] = useState('')
+  const [newAtcNo, setNewAtcNo] = useState('')
+  const [newAtcAddress, setNewAtcAddress] = useState('')
+  const [addError, setAddError] = useState('')
+  const [addInfo, setAddInfo] = useState('')
+  const [adding, setAdding] = useState(false)
 
   async function update(id: string, fields: Partial<Profile>) {
     setLoading(id)
     await supabase.from('profiles').update(fields).eq('id', id)
     setAtps(p => p.map(a => a.id === id ? { ...a, ...fields } : a))
     setLoading(null)
+  }
+
+  function resetForm() {
+    setNewEmail('')
+    setNewFullName('')
+    setNewAtcName('')
+    setNewAtcNo('')
+    setNewAtcAddress('')
+    setAddError('')
+    setAddInfo('')
+  }
+
+  function closeAdd() {
+    setShowAdd(false)
+    resetForm()
+  }
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    setAddError('')
+    setAddInfo('')
+    setAdding(true)
+
+    try {
+      const res = await fetch('/api/admin/atps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newEmail,
+          full_name: newFullName,
+          atc_name: newAtcName,
+          atc_no: newAtcNo,
+          atc_address: newAtcAddress,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setAddError(json.error ?? 'Failed to invite ATP')
+        setAdding(false)
+        return
+      }
+
+      setAddInfo(`Invitation email sent to ${newEmail}.`)
+      // Refresh the server-rendered list so the new ATP shows up
+      router.refresh()
+      // Optimistically prepend to local state so the row appears immediately
+      setAtps(prev => [
+        {
+          id: json.user.id,
+          email: json.user.email,
+          full_name: json.user.full_name,
+          atc_name: json.user.atc_name,
+          atc_no: json.user.atc_no,
+          atc_address: json.user.atc_address,
+          kyc_verified: false,
+          deposit_balance: 0,
+          is_admin: false,
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ])
+      setAdding(false)
+      // Auto-close after a moment so the admin sees the success message
+      setTimeout(closeAdd, 1500)
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Network error')
+      setAdding(false)
+    }
   }
 
   const filtered = atps.filter(a =>
@@ -30,11 +112,14 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
         </div>
       )}
       <div className="card">
-        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <span>All ATPs ({filtered.length})</span>
-          <div className="table-search" style={{ padding: 0 }}>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, ATC no..."
-              style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 4, padding: '3px 8px', fontSize: '0.775rem', outline: 'none' }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="table-search" style={{ padding: 0 }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, ATC no..."
+                style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 4, padding: '3px 8px', fontSize: '0.775rem', outline: 'none' }} />
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Add ATP</button>
           </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -79,6 +164,105 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
         </div>
         <div className="table-footer"><span>{filtered.length} of {atps.length} ATPs</span></div>
       </div>
+
+      {showAdd && (
+        <div
+          onClick={closeAdd}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: 16,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="card"
+            style={{ maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto', margin: 0 }}
+          >
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Add New ATP</span>
+              <button
+                type="button"
+                onClick={closeAdd}
+                aria-label="Close"
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.1rem', padding: 0, lineHeight: 1 }}
+              >×</button>
+            </div>
+            <div className="card-body">
+              <p style={{ fontSize: '0.825rem', color: '#6b7280', marginTop: 0, marginBottom: 12 }}>
+                The ATP will receive an email with a link to set their password and complete sign-in.
+              </p>
+
+              {addError && <div className="alert alert-error" style={{ marginBottom: 12 }}>{addError}</div>}
+              {addInfo && <div className="alert alert-info" style={{ marginBottom: 12 }}>{addInfo}</div>}
+
+              <form onSubmit={handleAdd}>
+                <div className="form-group">
+                  <label className="form-label">Email <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input
+                    className="form-input"
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    placeholder="atp@example.com"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={newFullName}
+                    onChange={e => setNewFullName(e.target.value)}
+                    placeholder="Contact person's name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">ATC Name</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={newAtcName}
+                    onChange={e => setNewAtcName(e.target.value)}
+                    placeholder="Training center name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">ATC Number</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={newAtcNo}
+                    onChange={e => setNewAtcNo(e.target.value)}
+                    placeholder="e.g. ATC-1234"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Address</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={newAtcAddress}
+                    onChange={e => setNewAtcAddress(e.target.value)}
+                    placeholder="Street, city, country"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+                  <button type="button" className="btn btn-outline" onClick={closeAdd} disabled={adding}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={adding}>
+                    {adding ? 'Sending invite...' : 'Send Invitation'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

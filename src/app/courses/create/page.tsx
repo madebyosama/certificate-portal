@@ -4,7 +4,7 @@ import AppLayout from '@/components/AppLayout'
 import CreateCourseForm from './CreateCourseForm'
 
 export default async function CreateCoursePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

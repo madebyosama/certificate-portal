@@ -4,7 +4,7 @@ import Link from 'next/link'
 import AdminLayout from '@/components/admin/AdminLayout'
 
 export default async function AdminPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

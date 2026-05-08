@@ -4,8 +4,9 @@ import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import type { Candidate } from '@/lib/types'
 
-export default async function CourseDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
@@ -13,10 +14,10 @@ export default async function CourseDetailPage({ params }: { params: { id: strin
   const { data: course } = await supabase
     .from('courses')
     .select('*, trainer:trainers(first_name,last_name), course_type:course_types(title,price)')
-    .eq('id', params.id).eq('atc_id', user.id).single()
+    .eq('id', id).eq('atc_id', user.id).single()
   if (!course) notFound()
 
-  const { data: candidates } = await supabase.from('candidates').select('*').eq('course_id', params.id).order('created_at')
+  const { data: candidates } = await supabase.from('candidates').select('*').eq('course_id', id).order('created_at')
   const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
 
   const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString() : '—'
@@ -31,9 +32,9 @@ export default async function CourseDetailPage({ params }: { params: { id: strin
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link href={`/courses/${params.id}/candidates`} className="btn btn-primary btn-sm">+ Add Students</Link>
+          <Link href={`/courses/${id}/candidates`} className="btn btn-primary btn-sm">+ Add Students</Link>
           {course.status !== 'approved' && (
-            <Link href={`/courses/${params.id}/purchase`} className="btn btn-success btn-sm">Pay & Activate</Link>
+            <Link href={`/courses/${id}/purchase`} className="btn btn-success btn-sm">Pay & Activate</Link>
           )}
         </div>
       </div>
@@ -94,7 +95,7 @@ export default async function CourseDetailPage({ params }: { params: { id: strin
             </thead>
             <tbody>
               {!candidates || candidates.length === 0 ? (
-                <tr><td colSpan={9} className="empty-state">No students yet. <Link href={`/courses/${params.id}/candidates`} style={{ color: '#1976d2' }}>Add students</Link></td></tr>
+                <tr><td colSpan={9} className="empty-state">No students yet. <Link href={`/courses/${id}/candidates`} style={{ color: '#1976d2' }}>Add students</Link></td></tr>
               ) : candidates.map((c: Candidate, i) => (
                 <tr key={c.id}>
                   <td>{i + 1}</td>

@@ -4,7 +4,7 @@ import AppLayout from '@/components/AppLayout'
 import DepositClient from './DepositClient'
 
 export default async function DepositPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

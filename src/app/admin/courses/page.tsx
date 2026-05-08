@@ -4,7 +4,7 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import CourseTypesClient from './CourseTypesClient'
 
 export default async function AdminCoursesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()

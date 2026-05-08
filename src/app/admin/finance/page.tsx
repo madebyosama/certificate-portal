@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 
 export default async function AdminFinancePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()

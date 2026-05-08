@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
 
 export default async function InvoicesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 

@@ -4,7 +4,7 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import DepositsClient from './DepositsClient'
 
 export default async function AdminDepositsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()

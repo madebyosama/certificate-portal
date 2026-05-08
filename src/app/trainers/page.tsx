@@ -4,7 +4,7 @@ import AppLayout from '@/components/AppLayout'
 import TrainersClient from './TrainersClient'
 
 export default async function TrainersPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
