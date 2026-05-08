@@ -1,4 +1,3 @@
-import LoadingSkeleton from '@/components/LoadingSkeleton'
 export default function Loading() {
-  return <LoadingSkeleton title="Loading..." />
+  return <div className="loading-page"><span className="spinner" style={{ borderTopColor: '#1976d2', border: '2px solid #e5e7eb', borderTopColor: '#1976d2' }} />Loading...</div>
 }

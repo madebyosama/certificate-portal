@@ -1,14 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AppLayout from '@/components/AppLayout'
 import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 import { getCachedProfile, getCachedDashboardStats } from '@/lib/data'
 
 export default async function DashboardPage() {
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const [profile, stats] = await Promise.all([
@@ -16,133 +14,65 @@ export default async function DashboardPage() {
     getCachedDashboardStats(user.id),
   ])
 
-  const displayName =
-    profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
 
   const statCards = [
-    {
-      label: 'Course Reference Numbers',
-      value: stats.courseReferenceNumbers,
-      href: '/courses',
-    },
-    {
-      label: 'Uploaded Results',
-      value: stats.uploadedResults,
-      href: '/courses?filter=submitted',
-    },
-    { label: 'All Invoices', value: stats.allInvoices, href: '/invoices' },
-    {
-      label: 'Other Invoices',
-      value: stats.otherInvoices,
-      href: '/other-invoices',
-    },
-    { label: 'Total Trainers', value: stats.totalTrainers, href: '/trainers' },
-    {
-      label: 'ATP Upload Documents',
-      value: stats.atcUploadDocuments,
-      href: '/deposit',
-    },
+    { label: 'Total Courses', value: stats.courseReferenceNumbers, href: '/courses' },
+    { label: 'Pending Review', value: stats.uploadedResults, href: '/courses?filter=submitted' },
+    { label: 'Trainers', value: stats.totalTrainers, href: '/trainers' },
+    { label: 'Invoices', value: stats.allInvoices, href: '/invoices' },
   ]
 
   return (
     <AppLayout userName={displayName}>
-      <div className='page-header'>
-        <h1 className='page-title'>
-          Dashboard{' '}
-          <span
-            style={{
-              fontSize: '1rem',
-              fontWeight: 400,
-              color: 'var(--gray-500)',
-            }}
-          >
-            Trainer and Course
-          </span>
-        </h1>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: 2 }}>Welcome back, {displayName}</div>
+        </div>
+        <Link href="/courses/create" className="btn btn-primary">+ Register Course</Link>
       </div>
 
       {profile?.kyc_verified && (
-        <div className='kyc-banner'>
-          <div className='kyc-icon'>
-            <svg
-              width='24'
-              height='24'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='currentColor'
-              strokeWidth='2'
-            >
-              <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
-              <circle cx='12' cy='7' r='4' />
-              <path
-                d='M9 11l3 3L22 4'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
+        <div className="kyc-banner">
+          <div style={{ width: 36, height: 36, background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#065f46', flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
           </div>
           <div>
-            <div className='kyc-title'>ATP Verified</div>
-            <div className='kyc-text'>
-              Your submitted ATP information has been verified and approved by
-              the admin. <a href='#'>Click here</a> to view your approved
-              details.
-            </div>
+            <div className="kyc-title">Account Verified</div>
+            <div className="kyc-text">Your ATP account has been verified and approved.</div>
           </div>
         </div>
       )}
 
-      <h2
-        className='section-title'
-        style={{ fontSize: '1rem', marginTop: 0, marginBottom: 16 }}
-      >
-        Account Information
-      </h2>
-
-      <div className='stats-grid'>
-        {statCards.map((card) => (
-          <div key={card.label} className='stat-card'>
-            <div className='stat-card-label'>{card.label}</div>
-            <div className='stat-card-value'>{card.value}</div>
-            <Link href={card.href} className='stat-card-action'>
-              View All
-            </Link>
+      <div className="stats-grid">
+        {statCards.map(card => (
+          <div key={card.label} className="stat-card">
+            <div className="stat-card-label">{card.label}</div>
+            <div className="stat-card-value">{card.value}</div>
+            <Link href={card.href} className="stat-card-action">View All</Link>
           </div>
         ))}
       </div>
 
-      {/* Deposit Balance */}
-      <div className='card' style={{ marginTop: 24 }}>
-        <div className='card-header'>Account Balance</div>
-        <div className='card-body'>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div className="card">
+          <div className="card-header">Account Balance</div>
+          <div className="balance-row">
             <div>
-              <div
-                style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--gray-500)',
-                  marginBottom: 4,
-                }}
-              >
-                Available Deposit Balance
-              </div>
-              <div
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: 'var(--blue-600)',
-                }}
-              >
-                ${(profile?.deposit_balance ?? 0).toFixed(4)}
-              </div>
+              <div className="balance-label">Available Balance</div>
+              <div className="balance-amount">${(profile?.deposit_balance ?? 0).toFixed(2)}</div>
             </div>
-            <Link
-              href='/deposit'
-              className='btn btn-primary btn-sm'
-              style={{ marginLeft: 'auto' }}
-            >
-              Add Deposit
-            </Link>
+            <Link href="/deposit" className="btn btn-primary btn-sm">Add Funds</Link>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">Quick Actions</div>
+          <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Link href="/courses/create" className="btn btn-primary btn-sm" style={{ justifyContent: 'center' }}>+ Register New Course</Link>
+            <Link href="/trainers" className="btn btn-outline btn-sm" style={{ justifyContent: 'center' }}>Manage Trainers</Link>
+            <Link href="/deposit" className="btn btn-outline btn-sm" style={{ justifyContent: 'center' }}>Add Funds to Wallet</Link>
           </div>
         </div>
       </div>

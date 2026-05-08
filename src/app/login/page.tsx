@@ -1,112 +1,57 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-function generateCaptcha(): number {
-  return Math.floor(100 + Math.random() * 900)
-}
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [captchaValue] = useState(generateCaptcha())
-  const [captchaInput, setCaptchaInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-
-    if (Number(captchaInput) !== captchaValue) {
-      setError('Captcha verification failed. Please try again.')
-      return
-    }
-
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    setLoading(false)
 
-    if (error) {
-      setError(error.message)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
-    }
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    if (authError) { setError(authError.message); setLoading(false); return }
+
+    // Let the server decide where to redirect based on is_admin
+    // This avoids RLS issues with client-side profile reads right after login
+    window.location.href = '/auth/role-check'
   }
 
   return (
-    <div className='login-page'>
-      <h1 className='login-title'>Portal Login</h1>
-
-      <div className='login-card'>
-        <div className='login-logo'>
-          <div className='login-logo-badge'>
-            <img src='/logo.png' alt='ISTS Logo' />
-          </div>
-          <div className='login-tagline'>
-            Login to the ISTS course provider secure Area
-          </div>
-          <div className='login-subtext'>
-            Access to the ISTS secure area is available to registered users
-            only. Enter your email address and password to log in.
-          </div>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <img src="/logo.png" alt="ISTS Logo" />
+          <div className="login-tagline">ISTS Global Training Portal</div>
+          <div className="login-subtext">Sign in to your account to continue.</div>
         </div>
 
-        {error && <div className='alert alert-error'>{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
 
-        <form className='login-form' onSubmit={handleLogin}>
-          <div className='form-group'>
-            <input
-              className='form-input'
-              type='email'
-              placeholder='Email address'
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        <form className="login-form" onSubmit={handleLogin}>
+          <div className="form-group">
+            <label className="form-label">Email address</label>
+            <input className="form-input" type="email" placeholder="you@example.com" value={email}
+              onChange={e => setEmail(e.target.value)} required autoFocus />
           </div>
-
-          <div className='form-group'>
-            <input
-              className='form-input'
-              type='password'
-              placeholder='••••••••••'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input className="form-input" type="password" placeholder="••••••••" value={password}
+              onChange={e => setPassword(e.target.value)} required />
           </div>
-
-          <div className='form-group'>
-            <label className='form-label'>
-              Captcha <span className='required'>*</span>
-            </label>
-            <div className='captcha-row'>
-              <div className='captcha-box'>{captchaValue}</div>
-              <input
-                className='form-input'
-                type='number'
-                placeholder='Enter captcha'
-                value={captchaInput}
-                onChange={(e) => setCaptchaInput(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <button className='login-btn' type='submit' disabled={loading}>
-            {loading ? <span className='spinner' /> : 'Sign me in'}
+          <button className="login-btn" type="submit" disabled={loading}>
+            {loading ? <><span className="spinner" /> Signing in...</> : 'Sign In'}
           </button>
         </form>
 
-        <div className='login-forgot'>Forgot your password?</div>
+        <div className="login-forgot">Forgot your password?</div>
       </div>
     </div>
   )

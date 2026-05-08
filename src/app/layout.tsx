@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import '../styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Training Portal',
-  description: 'Training Center Management Portal',
+  title: 'UKQAM Portal',
+  description:
+    'A portal for the UKQAM project, providing access to various tools and resources.',
 }
 
 export default function RootLayout({

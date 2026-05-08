@@ -4,175 +4,124 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
-  courseId: string
-  userId: string
-  courseName: string
-  coursePrice: number
-  numPacks: number
-  validityDays: number
-  purchaseFee: number
-  totalPrice: number
-  depositBalance: number
-  hasEnoughBalance: boolean
+  courseId: string; userId: string; courseName: string;
+  coursePrice: number; numStudents: number; validityDays: number;
+  purchaseFee: number; totalPrice: number; depositBalance: number;
+  hasEnoughBalance: boolean;
 }
 
 export default function PurchaseForm({
-  courseId, userId, courseName, coursePrice, numPacks,
+  courseId, userId, courseName, coursePrice, numStudents,
   validityDays, purchaseFee, totalPrice, depositBalance, hasEnoughBalance,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
-  const [paymentMethod, setPaymentMethod] = useState<'deposit' | 'stripe'>('deposit')
-  const [cardNumber, setCardNumber] = useState('')
+  const [method, setMethod] = useState<'deposit' | 'stripe'>('deposit')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  async function handlePurchase() {
+  async function handlePay() {
     setError(''); setSuccess('')
-
-    if (paymentMethod === 'deposit' && !hasEnoughBalance) {
-      setError('Insufficient deposit balance. Please top up your account.')
+    if (method === 'deposit' && !hasEnoughBalance) {
+      setError('Insufficient balance. Please deposit funds first.')
       return
     }
-
-    if (paymentMethod === 'stripe' && !cardNumber.trim()) {
-      setError('Please enter your card number.')
-      return
-    }
-
     setLoading(true)
-
-    // Generate invoice number
     const invoiceNumber = `INV-${Date.now()}`
 
-    // Create invoice
-    const { error: invoiceError } = await supabase.from('invoices').insert({
-      atc_id: userId,
-      course_id: courseId,
-      invoice_number: invoiceNumber,
-      amount: totalPrice,
-      status: 'paid',
-      payment_method: paymentMethod,
+    const { error: invErr } = await supabase.from('invoices').insert({
+      atc_id: userId, course_id: courseId, invoice_number: invoiceNumber,
+      amount: totalPrice, status: 'paid', payment_method: method,
       paid_at: new Date().toISOString(),
     })
+    if (invErr) { setError(invErr.message); setLoading(false); return }
 
-    if (invoiceError) { setError(invoiceError.message); setLoading(false); return }
-
-    if (paymentMethod === 'deposit') {
-      // Deduct from deposit balance
-      const { data: profile } = await supabase.from('profiles').select('deposit_balance').eq('id', userId).single()
-      const newBalance = (profile?.deposit_balance ?? 0) - totalPrice
-      await supabase.from('profiles').update({ deposit_balance: newBalance }).eq('id', userId)
-
-      // Log transaction
+    if (method === 'deposit') {
+      const { data: p } = await supabase.from('profiles').select('deposit_balance').eq('id', userId).single()
+      const newBal = (p?.deposit_balance ?? 0) - totalPrice
+      await supabase.from('profiles').update({ deposit_balance: newBal }).eq('id', userId)
       await supabase.from('transactions').insert({
-        atc_id: userId,
-        type: 'debit',
-        amount: totalPrice,
+        atc_id: userId, type: 'debit', amount: totalPrice,
         description: `Course purchase: ${courseName}`,
-        reference: invoiceNumber,
-        balance_after: newBalance,
+        reference: invoiceNumber, balance_after: newBal,
       })
     }
 
-    // Update course status to approved
     await supabase.from('courses').update({ status: 'approved' }).eq('id', courseId)
-
     setLoading(false)
-    setSuccess('Payment successful! Your course has been approved.')
+    setSuccess('Payment successful! Course is now active.')
     setTimeout(() => router.push(`/courses/${courseId}`), 1500)
   }
-
-  const rows = [
-    { label: 'Course Name :', value: courseName },
-    { label: 'Price :', value: `$ ${coursePrice.toFixed(2)}` },
-    { label: 'Number of Packs', value: `${numPacks} Pack/s` },
-    { label: 'Course Vaidity', value: `${validityDays} Day${validityDays !== 1 ? 's' : ''}` },
-    { label: 'Purchase Fee:', value: `$ ${purchaseFee.toFixed(2)}` },
-    { label: 'Total Price with Fee :', value: `$ ${totalPrice.toFixed(2)}` },
-    { label: 'Payment From:', value: 'Deposit Account' },
-    { label: 'Available Balance in Deposit:', value: `$ ${depositBalance.toFixed(4)}` },
-  ]
 
   return (
     <>
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="purchase-detail" style={{ border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 20 }}>
-        {rows.map(row => (
-          <div key={row.label} className="purchase-row">
-            <div className="purchase-label">{row.label}</div>
-            <div className="purchase-value">{row.value}</div>
+      {/* Summary */}
+      <div className="purchase-grid">
+        <div className="purchase-label">Course</div>
+        <div className="purchase-value">{courseName}</div>
+        <div className="purchase-label">Students</div>
+        <div className="purchase-value">{numStudents}</div>
+        <div className="purchase-label">Price per Student</div>
+        <div className="purchase-value">${coursePrice.toFixed(2)}</div>
+        <div className="purchase-label">Validity</div>
+        <div className="purchase-value">{validityDays} day{validityDays !== 1 ? 's' : ''}</div>
+        {purchaseFee > 0 && <>
+          <div className="purchase-label">Purchase Fee</div>
+          <div className="purchase-value">${purchaseFee.toFixed(2)}</div>
+        </>}
+        <div className="purchase-label" style={{ fontWeight: 700, fontSize: '0.9rem' }}>Total</div>
+        <div className="purchase-value" style={{ fontWeight: 700, fontSize: '1rem', color: '#1976d2' }}>${totalPrice.toFixed(2)}</div>
+      </div>
+
+      {/* Balance status */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: hasEnoughBalance ? '#d1fae5' : '#fee2e2', borderRadius: 8, marginBottom: 18, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: '0.75rem', color: hasEnoughBalance ? '#065f46' : '#b91c1c', fontWeight: 600, marginBottom: 2 }}>
+            {hasEnoughBalance ? '✓ Sufficient Balance' : '✗ Insufficient Balance'}
           </div>
-        ))}
-        <div className="purchase-label">Balance Status:</div>
-        <div className="purchase-value">
-          <span
-            className={`badge ${hasEnoughBalance ? 'badge-pass' : 'badge-fail'}`}
-            style={{ fontSize: '0.8rem' }}
-          >
-            {hasEnoughBalance ? 'balance is sufficient for this purchase' : 'insufficient balance'}
-          </span>
+          <div style={{ fontSize: '0.85rem', color: hasEnoughBalance ? '#047857' : '#991b1b' }}>
+            Available: <strong>${depositBalance.toFixed(2)}</strong>
+            {!hasEnoughBalance && <> · Need: <strong>${(totalPrice - depositBalance).toFixed(2)} more</strong></>}
+          </div>
         </div>
-        <div className="purchase-label">Payment Method</div>
-        <div className="purchase-value">
-          <div className="radio-group">
-            <label className="radio-item">
-              <input
-                type="radio"
-                name="payment"
-                value="deposit"
-                checked={paymentMethod === 'deposit'}
-                onChange={() => setPaymentMethod('deposit')}
-              />
-              Deposit Account
-            </label>
-            <label className="radio-item">
-              <input
-                type="radio"
-                name="payment"
-                value="stripe"
-                checked={paymentMethod === 'stripe'}
-                onChange={() => setPaymentMethod('stripe')}
-              />
-              Stripe
-            </label>
-          </div>
+        {!hasEnoughBalance && (
+          <a href="/deposit" className="btn btn-primary btn-sm">Add Funds →</a>
+        )}
+      </div>
+
+      {/* Payment method */}
+      <div style={{ marginBottom: 18 }}>
+        <div className="form-label" style={{ marginBottom: 8 }}>Payment Method</div>
+        <div className="radio-group">
+          <label className="radio-item">
+            <input type="radio" name="method" value="deposit" checked={method === 'deposit'} onChange={() => setMethod('deposit')} />
+            Account Balance
+          </label>
+          <label className="radio-item">
+            <input type="radio" name="method" value="stripe" checked={method === 'stripe'} onChange={() => setMethod('stripe')} />
+            Credit Card (Stripe)
+          </label>
         </div>
       </div>
 
-      {paymentMethod === 'stripe' && (
-        <div className="stripe-container" style={{ marginBottom: 20 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12, fontSize: '0.9rem' }}>Stripe</div>
-          <input
-            className="stripe-input"
-            type="text"
-            placeholder="Card number"
-            value={cardNumber}
-            onChange={e => setCardNumber(e.target.value)}
-            maxLength={19}
-          />
-          <button
-            className="btn btn-primary"
-            onClick={handlePurchase}
-            disabled={loading}
-          >
-            {loading ? <><span className="spinner" /> Processing...</> : 'Pay Now'}
-          </button>
+      {method === 'stripe' && (
+        <div className="alert alert-info" style={{ marginBottom: 16 }}>
+          Stripe integration coming soon. Please use your account balance for now.
         </div>
       )}
 
-      {paymentMethod === 'deposit' && (
-        <button
-          className="btn btn-success"
-          onClick={handlePurchase}
-          disabled={loading || !hasEnoughBalance}
-        >
-          {loading ? <><span className="spinner" /> Processing...</> : 'Confirm Purchase'}
-        </button>
-      )}
+      <button
+        className="btn btn-success"
+        onClick={handlePay}
+        disabled={loading || (method === 'deposit' && !hasEnoughBalance) || method === 'stripe'}
+        style={{ fontSize: '0.95rem', padding: '10px 24px' }}
+      >
+        {loading ? <><span className="spinner" /> Processing...</> : `Confirm Payment · $${totalPrice.toFixed(2)}`}
+      </button>
     </>
   )
 }

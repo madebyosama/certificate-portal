@@ -1,14 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import CoursesTable from './CoursesTable'
 import { getCachedProfile, getCachedCourses } from '@/lib/data'
 
-export default async function CoursesPage({
-  searchParams,
-}: {
-  searchParams: { filter?: string }
-}) {
+export default async function CoursesPage({ searchParams }: { searchParams: { filter?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -18,7 +15,6 @@ export default async function CoursesPage({
     getCachedCourses(user.id),
   ])
 
-  // Filter client-side from cache (avoids extra DB call)
   const courses = searchParams.filter
     ? allCourses.filter((c: any) => c.status === searchParams.filter)
     : allCourses
@@ -28,10 +24,13 @@ export default async function CoursesPage({
   return (
     <AppLayout userName={displayName}>
       <div className="page-header">
-        <h1 className="page-title">Manage Courses</h1>
+        <h1 className="page-title">Courses</h1>
+        <Link href="/courses/create" className="btn btn-primary">+ Register Course</Link>
       </div>
       <div className="card">
-        <div className="card-header">Manage Course</div>
+        <div className="card-header">
+          {searchParams.filter ? `Courses — ${searchParams.filter}` : 'All Courses'}
+        </div>
         <CoursesTable courses={courses ?? []} />
       </div>
     </AppLayout>

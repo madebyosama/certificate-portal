@@ -22,10 +22,12 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const path = request.nextUrl.pathname
+  const isAuthPage = path.startsWith('/login')
+  const isAuthCallback = path.startsWith('/auth')
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login')
-  const isAuthCallback = request.nextUrl.pathname.startsWith('/auth')
-
+  // Only check: is the user logged in at all?
+  // Admin authorization is handled inside each /admin page server-side
   if (!user && !isAuthPage && !isAuthCallback) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

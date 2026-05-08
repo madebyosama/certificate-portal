@@ -9,6 +9,7 @@ export interface Profile {
   email: string | null
   kyc_verified: boolean
   deposit_balance: number
+  is_admin: boolean
   avatar_url: string | null
   created_at: string
 }
@@ -48,10 +49,8 @@ export interface Course {
   total_candidates: number
   notes: string | null
   created_at: string
-  // Joined
   trainer?: Trainer
   course_type?: CourseType
-  profile?: Profile
 }
 
 export interface Candidate {
@@ -85,13 +84,15 @@ export interface Invoice {
   course?: Course
 }
 
-export interface OtherInvoice {
+export interface Deposit {
   id: string
   atc_id: string
-  description: string | null
   amount: number
-  status: 'pending' | 'paid' | 'overdue' | 'cancelled'
-  issued_at: string
+  payment_method: 'bank_transfer' | 'stripe' | 'cheque' | null
+  status: 'pending' | 'approved' | 'rejected'
+  reference: string | null
+  notes: string | null
+  created_at: string
 }
 
 export interface Transaction {
@@ -105,22 +106,25 @@ export interface Transaction {
   created_at: string
 }
 
-export interface Deposit {
+export interface SupportTicket {
   id: string
   atc_id: string
-  amount: number
-  payment_method: 'bank_transfer' | 'stripe' | 'cheque' | null
-  status: 'pending' | 'approved' | 'rejected'
-  reference: string | null
-  notes: string | null
+  subject: string
+  message: string
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  admin_reply: string | null
   created_at: string
+  updated_at: string
+  profile?: Profile
 }
 
-export interface DashboardStats {
-  courseReferenceNumbers: number
-  uploadedResults: number
-  allInvoices: number
-  otherInvoices: number
-  totalTrainers: number
-  atcUploadDocuments: number
+export interface Announcement {
+  id: string
+  title: string
+  body: string
+  target: 'all' | 'specific'
+  target_atc_id: string | null
+  created_by: string | null
+  created_at: string
 }
