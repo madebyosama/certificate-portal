@@ -21,6 +21,7 @@ export default function RootLayout({
           href='https://fonts.gstatic.com'
           crossOrigin='anonymous'
         />
+        <link rel='icon' href='/logo.png' sizes='any' />
       </head>
       <body>{children}</body>
     </html>

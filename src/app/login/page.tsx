@@ -41,16 +41,21 @@ export default function LoginPage() {
     setLoading(true)
 
     const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    })
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo,
+      }
+    )
 
     setLoading(false)
     if (resetError) {
       setError(resetError.message)
       return
     }
-    setInfo(`If an account exists for ${email}, a password reset link has been sent. Please check your inbox.`)
+    setInfo(
+      `If an account exists for ${email}, a password reset link has been sent. Please check your inbox.`
+    )
   }
 
   function switchMode(next: Mode) {
@@ -64,8 +69,8 @@ export default function LoginPage() {
     <div className='login-page'>
       <div className='login-card'>
         <div className='login-logo'>
-          <img src='/logo.png' alt='UKQAM Logo' />
-          <div className='login-tagline'>UKQAM Portal</div>
+          <img src='/login-logo.png' alt='UKQAM Logo' />
+          <div className='login-tagline'>Training Portal</div>
           <div className='login-subtext'>
             {mode === 'login'
               ? 'Sign in to your account to continue.'
@@ -142,7 +147,14 @@ export default function LoginPage() {
             <button
               type='button'
               onClick={() => switchMode('forgot')}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', font: 'inherit', padding: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                font: 'inherit',
+                padding: 0,
+              }}
             >
               Forgot your password?
             </button>
@@ -150,7 +162,14 @@ export default function LoginPage() {
             <button
               type='button'
               onClick={() => switchMode('login')}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', font: 'inherit', padding: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                font: 'inherit',
+                padding: 0,
+              }}
             >
               ← Back to sign in
             </button>

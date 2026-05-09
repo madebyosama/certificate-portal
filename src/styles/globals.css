@@ -156,14 +156,14 @@ img { display: block; max-width: 100%; }
 .login-page { min-height: 100vh; background: linear-gradient(135deg, #e8edf5 0%, #c3cfe2 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
 .login-card { background: #fff; border-radius: var(--radius-lg); padding: 32px 36px; width: 100%; max-width: 400px; box-shadow: var(--shadow-md); }
 .login-logo { text-align: center; margin-bottom: 18px; }
-.login-logo img { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--blue-400); margin: 0 auto 10px; object-fit: contain; }
+.login-logo img { width: 100px; height: 100px; border-radius: 0%; border: 0px solid var(--blue-900); margin: 0 auto 10px; object-fit: contain; }
 .login-tagline { font-weight: 700; font-size: 0.9rem; color: var(--gray-900); text-align: center; }
 .login-subtext { font-size: 0.75rem; color: var(--gray-600); text-align: center; line-height: 1.5; margin-top: 4px; margin-bottom: 18px; }
 .login-form { display: flex; flex-direction: column; gap: 12px; }
-.login-btn { width: 100%; padding: 10px; background: var(--teal-500); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background var(--t); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.login-btn:hover { background: #0097a7; }
+.login-btn { width: 100%; padding: 10px; background: var(--blue-700); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background var(--t); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.login-btn:hover { background: var(--blue-600) }
 .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
-.login-forgot { text-align: center; font-size: 0.775rem; color: var(--teal-500); margin-top: 10px; cursor: pointer; }
+.login-forgot { text-align: center; font-size: 0.775rem; color: var(--blue-400); margin-top: 10px; cursor: pointer; }
 .login-forgot:hover { text-decoration: underline; }
 
 .action-dropdown { position: relative; display: inline-block; }
