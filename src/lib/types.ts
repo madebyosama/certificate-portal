@@ -67,7 +67,43 @@ export interface Candidate {
   assessment_marks_2: number | null
   total_marks: number
   status: 'pending' | 'pass' | 'fail'
+  certificate_no: string | null
+  certificate_issued_at: string | null
   created_at: string
+}
+
+export interface CertificateOrder {
+  id: string
+  order_number: string
+  atc_id: string
+  candidate_id: string
+  course_id: string | null
+  certificate_no: string | null
+  recipient_name: string
+  address_line1: string
+  address_line2: string | null
+  city: string
+  state_region: string | null
+  postal_code: string
+  country: string
+  phone: string | null
+  certificate_price: number
+  delivery_price: number
+  tax_amount: number
+  total_amount: number
+  payment_method: 'deposit' | 'stripe' | null
+  status: 'pending' | 'paid' | 'printing' | 'shipped' | 'delivered' | 'cancelled'
+  tracking_number: string | null
+  notes: string | null
+  created_at: string
+  paid_at: string | null
+}
+
+export interface AppSetting {
+  key: string
+  value: number
+  description: string | null
+  updated_at: string
 }
 
 export interface Invoice {

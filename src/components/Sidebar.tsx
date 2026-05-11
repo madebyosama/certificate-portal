@@ -39,6 +39,11 @@ const IC = {
       <path d='M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z' />
     </svg>
   ),
+  certificate: (
+    <svg viewBox='0 0 24 24' fill='currentColor' width='16' height='16'>
+      <path d='M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 13l-3-3h2V8h2v4h2l-3 3z' />
+    </svg>
+  ),
 }
 
 const nav = [
@@ -54,6 +59,7 @@ const nav = [
   { label: 'Trainers', icon: IC.trainers, href: '/trainers' },
   { label: 'Wallet', icon: IC.wallet, href: '/deposit' },
   { label: 'Invoices', icon: IC.invoice, href: '/invoices' },
+  { label: 'Cert. Orders', icon: IC.certificate, href: '/certificate-orders' },
   { label: 'Support', icon: IC.support, href: '/support' },
 ]
 

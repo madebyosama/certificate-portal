@@ -13,6 +13,9 @@ A full-stack training center management portal built with **Next.js 14**, **Supa
 - 🧾 **Invoices** — View course and other invoices
 - 💰 **Transactions** — Full transaction history with balance tracking
 - 🏦 **Deposits** — Request deposits, track approval status
+- 🎓 **Certificates** — Download branded PDF certificates with unique IDs (per-ATC sequence: `{ATC_NO}-CRT-000001` …)
+- 📦 **Hard-Copy Orders** — Order physical certificates with delivery address, subtotal + delivery + tax payment, and order history
+- 🔎 **Student Search** — Search students by name, email, country, serial, certificate no, or status
 
 ---
 
@@ -33,8 +36,28 @@ A full-stack training center management portal built with **Next.js 14**, **Supa
 ### 1. Create Supabase Project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
-2. In the **SQL Editor**, run the entire contents of `schema.sql`
+2. In the **SQL Editor**, run the following in order:
+   - `schema.sql` — base tables and triggers
+   - `admin-migration.sql` — admin role, support tickets, announcements
+   - `support-messages-migration.sql` — support ticket threading
+   - `certificate-migration.sql` — certificate numbering, hard-copy orders, and pricing settings
 3. Copy your Project URL and Anon Key from **Settings → API**
+
+### Certificate pricing (admin)
+
+Hard-copy certificate prices are stored in the `app_settings` table:
+
+| Key | Default | What it controls |
+|---|---|---|
+| `certificate_hardcopy_price` | `15.00` | Price of the physical certificate (USD) |
+| `certificate_delivery_price` | `8.00` | Flat delivery / shipping fee (USD) |
+| `certificate_tax_rate` | `0.05` | Tax rate as decimal (0.05 = 5%) |
+
+To change a price, run e.g. `update app_settings set value = 20.00 where key = 'certificate_hardcopy_price';` in the Supabase SQL editor.
+
+### Certificate number format
+
+Each certificate gets a unique ID per ATC, using `{ATC_NO}-CRT-{6-digit-seq}`. The sequence starts at `000001` for each ATC and increments atomically via the `next_cert_seq()` Postgres function — so a centre with ATC `ATC-20251108-1234` will issue `ATC-20251108-1234-CRT-000001`, `…-CRT-000002`, and so on. The number is assigned the first time a user downloads the certificate (or orders a hard copy) for that candidate, and is then locked — re-downloading reuses the same number.
 
 ### 2. Install & Configure
 
