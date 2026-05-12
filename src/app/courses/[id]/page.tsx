@@ -99,7 +99,8 @@ export default async function CourseDetailPage({
               href={`/courses/${id}/purchase`}
               className='btn btn-success btn-sm'
             >
-              Pay for {unpaidStudents} New Student{unpaidStudents !== 1 ? 's' : ''}
+              Pay for {unpaidStudents} New Student
+              {unpaidStudents !== 1 ? 's' : ''}
             </Link>
           ) : null}
         </div>
@@ -122,7 +123,7 @@ export default async function CourseDetailPage({
                 {course.status}
               </span>
             </div>
-            <div className='detail-label'>Course Type</div>
+            <div className='detail-label'>Type</div>
             <div className='detail-value'>
               {course.course_type?.title ?? '—'}
             </div>
@@ -154,9 +155,23 @@ export default async function CourseDetailPage({
             <div className='detail-value'>
               {totalStudents}
               {totalStudents > 0 && (
-                <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                  }}
+                >
                   ({paidStudents} paid
-                  {unpaidStudents > 0 && <>, <span style={{ color: '#b45309' }}>{unpaidStudents} unpaid</span></>})
+                  {unpaidStudents > 0 && (
+                    <>
+                      ,{' '}
+                      <span style={{ color: '#b45309' }}>
+                        {unpaidStudents} unpaid
+                      </span>
+                    </>
+                  )}
+                  )
                 </span>
               )}
             </div>
