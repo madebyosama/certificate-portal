@@ -85,7 +85,7 @@ export default function Sidebar() {
       <div className='sidebar-logo'>
         <img className='sidebar-logo-img' src='/logo.png' alt='ISTS' />
         <span className='sidebar-logo-text'>
-          UKQAM<span> Portal</span>
+          UKQAM<span> ATP</span>
         </span>
       </div>
       <nav className='sidebar-nav'>

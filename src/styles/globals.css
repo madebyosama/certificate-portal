@@ -27,7 +27,8 @@ img { display: block; max-width: 100%; }
 .main-content { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; min-height: 100vh; }
 .page-body { flex: 1; padding: 24px; }
 
-.sidebar { width: var(--sidebar-width); background: linear-gradient(180deg, var(--blue-700) 0%, var(--blue-900) 100%); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 100; box-shadow: 2px 0 8px rgba(0,0,0,0.2); }
+.sidebar { width: var(--sidebar-width); /*background: linear-gradient(180deg, var(--blue-700) 0%, var(--blue-900) 100%);*/
+  background-color: #0d1149; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 100; box-shadow: 2px 0 8px rgba(0,0,0,0.2); }
 .sidebar-logo { padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
 .sidebar-logo-img { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); object-fit: contain; background: rgba(255,255,255,0.1); }
 .sidebar-logo-text { color: #fff; font-size: 1.05rem; font-weight: 700; }

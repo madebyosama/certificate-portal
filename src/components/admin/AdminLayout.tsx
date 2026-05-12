@@ -54,7 +54,7 @@ const IC = {
 const nav = [
   { label: 'Overview', icon: IC.dashboard, href: '/admin' },
   { label: 'ATPs', icon: IC.atps, href: '/admin/atps' },
-  { label: 'Course Types', icon: IC.courses, href: '/admin/courses' },
+  { label: 'Courses', icon: IC.courses, href: '/admin/courses' },
   { label: 'Deposits', icon: IC.deposits, href: '/admin/deposits' },
   { label: 'Finance', icon: IC.finance, href: '/admin/finance' },
   { label: 'Analytics', icon: IC.analytics, href: '/admin/analytics' },
@@ -91,7 +91,8 @@ export default function AdminLayout({ children, userName = 'Admin' }: Props) {
       <aside
         style={{
           width: 220,
-          background: 'linear-gradient(180deg, #1a1a2e 0%, #2B328C 100%)',
+          background: '#0d1149',
+          // background: 'linear-gradient(180deg, #1a1a2e 0%, #2B328C 100%)',
           position: 'fixed',
           top: 0,
           left: 0,
