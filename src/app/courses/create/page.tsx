@@ -10,9 +10,9 @@ export default async function CreateCoursePage() {
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const { data: courseTypes } = await supabase.from('course_types').select('*').eq('is_active', true).order('title')
-  const { data: trainers } = await supabase.from('trainers').select('*').eq('atc_id', user.id).eq('is_active', true)
+  const { data: trainers } = await supabase.from('trainers').select('*').eq('atp_id', user.id).eq('is_active', true)
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   return (
     <AppLayout userName={displayName}>
@@ -26,10 +26,10 @@ export default async function CreateCoursePage() {
           <strong style={{ color: '#111827' }}>Course Details</strong>
           <span>→</span>
           <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>2</span>
-          Add Students
+          Purchase Course
           <span>→</span>
           <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>3</span>
-          Pay & Activate
+          Add Students & Pay
         </div>
       </div>
 

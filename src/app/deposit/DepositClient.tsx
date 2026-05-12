@@ -20,7 +20,7 @@ export default function DepositClient({ deposits: initial, userId, balance }: Pr
     if (!form.amount || Number(form.amount) <= 0) { setError('Enter a valid amount.'); return }
     setLoading(true)
     const { data, error } = await supabase.from('deposits').insert({
-      atc_id: userId, amount: Number(form.amount),
+      atp_id: userId, amount: Number(form.amount),
       payment_method: form.payment_method as any,
       reference: form.reference || null, notes: form.notes || null, status: 'pending',
     }).select().single()

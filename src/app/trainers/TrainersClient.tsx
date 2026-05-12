@@ -19,7 +19,7 @@ export default function TrainersClient({ trainers: initial, userId }: { trainers
     setError('')
     if (!form.first_name || !form.last_name) { setError('First and last name required.'); return }
     setLoading(true)
-    const { data, error } = await supabase.from('trainers').insert({ atc_id: userId, ...form }).select().single()
+    const { data, error } = await supabase.from('trainers').insert({ atp_id: userId, ...form }).select().single()
     setLoading(false)
     if (error) { setError(error.message); return }
     setTrainers(p => [data, ...p])

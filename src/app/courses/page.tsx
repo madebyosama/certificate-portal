@@ -20,7 +20,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
     ? allCourses.filter((c: any) => c.status === filter)
     : allCourses
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   return (
     <AppLayout userName={displayName}>

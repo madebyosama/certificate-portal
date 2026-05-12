@@ -12,7 +12,7 @@ export default async function AdminSupportPage() {
 
   const { data: tickets } = await supabase
     .from('support_tickets')
-    .select('*, profile:profiles(atc_name, full_name, email), messages:support_messages(*)')
+    .select('*, profile:profiles(atp_name, full_name, email), messages:support_messages(*)')
     .order('created_at', { ascending: false })
 
   // Sort messages within each ticket chronologically (oldest first)

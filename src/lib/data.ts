@@ -18,7 +18,7 @@ export const getCachedCourses = cache(async (userId: string) => {
   const { data } = await supabase
     .from('courses')
     .select('*, trainer:trainers(first_name, last_name)')
-    .eq('atc_id', userId)
+    .eq('atp_id', userId)
     .order('created_at', { ascending: false })
   return data ?? []
 })
@@ -31,10 +31,10 @@ export const getCachedDashboardStats = cache(async (userId: string) => {
     { count: invoiceCount },
     { count: trainerCount },
   ] = await Promise.all([
-    supabase.from('courses').select('*', { count: 'exact', head: true }).eq('atc_id', userId),
-    supabase.from('courses').select('*', { count: 'exact', head: true }).eq('atc_id', userId).eq('status', 'submitted'),
-    supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('atc_id', userId),
-    supabase.from('trainers').select('*', { count: 'exact', head: true }).eq('atc_id', userId),
+    supabase.from('courses').select('*', { count: 'exact', head: true }).eq('atp_id', userId),
+    supabase.from('courses').select('*', { count: 'exact', head: true }).eq('atp_id', userId).eq('status', 'submitted'),
+    supabase.from('invoices').select('*', { count: 'exact', head: true }).eq('atp_id', userId),
+    supabase.from('trainers').select('*', { count: 'exact', head: true }).eq('atp_id', userId),
   ])
   return {
     courseReferenceNumbers: courseCount ?? 0,

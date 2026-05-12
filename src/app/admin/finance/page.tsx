@@ -11,11 +11,11 @@ export default async function AdminFinancePage() {
 
   const [{ data: invoices }, { data: transactions }] = await Promise.all([
     supabase.from('invoices')
-      .select('*, profile:profiles(atc_name, full_name), course:courses(course_title)')
+      .select('*, profile:profiles(atp_name, full_name), course:courses(course_title)')
       .order('issued_at', { ascending: false })
       .limit(200),
     supabase.from('transactions')
-      .select('*, profile:profiles(atc_name, full_name)')
+      .select('*, profile:profiles(atp_name, full_name)')
       .order('created_at', { ascending: false })
       .limit(200),
   ])
@@ -59,7 +59,7 @@ export default async function AdminFinancePage() {
               ) : invoices.map((inv: any) => (
                 <tr key={inv.id}>
                   <td style={{ fontSize: '0.75rem', color: '#6b7280', fontFamily: 'monospace' }}>{inv.invoice_number}</td>
-                  <td>{inv.profile?.atc_name || inv.profile?.full_name || '—'}</td>
+                  <td>{inv.profile?.atp_name || inv.profile?.full_name || '—'}</td>
                   <td>{inv.course?.course_title || '—'}</td>
                   <td style={{ fontWeight: 600 }}>${inv.amount.toFixed(2)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{inv.payment_method || '—'}</td>
@@ -87,7 +87,7 @@ export default async function AdminFinancePage() {
               ) : transactions.map((t: any) => (
                 <tr key={t.id}>
                   <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                  <td>{t.profile?.atc_name || t.profile?.full_name || '—'}</td>
+                  <td>{t.profile?.atp_name || t.profile?.full_name || '—'}</td>
                   <td>
                     <span style={{ fontWeight: 600, color: t.type === 'credit' ? '#43a047' : '#e53935' }}>
                       {t.type === 'credit' ? '▲ Credit' : '▼ Debit'}

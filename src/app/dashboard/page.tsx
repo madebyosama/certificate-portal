@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     getCachedDashboardStats(user.id),
   ])
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   const statCards = [
     { label: 'Total Courses', value: stats.courseReferenceNumbers, href: '/courses' },

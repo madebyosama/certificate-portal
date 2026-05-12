@@ -20,11 +20,11 @@ export default async function CertificateOrdersPage() {
     .select(
       '*, candidate:candidates(first_name,last_name), course:courses(course_title,reference_number)'
     )
-    .eq('atc_id', user.id)
+    .eq('atp_id', user.id)
     .order('created_at', { ascending: false })
 
   const displayName =
-    profile?.atc_name || profile?.full_name || user.email || 'User'
+    profile?.atp_name || profile?.full_name || user.email || 'User'
 
   const totalSpent = (orders ?? []).reduce(
     (s: number, o: any) => s + Number(o.total_amount || 0),

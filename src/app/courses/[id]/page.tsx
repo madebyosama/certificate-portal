@@ -28,7 +28,7 @@ export default async function CourseDetailPage({
       '*, trainer:trainers(first_name,last_name), course_type:course_types(title,price)'
     )
     .eq('id', id)
-    .eq('atc_id', user.id)
+    .eq('atp_id', user.id)
     .single()
   if (!course) notFound()
 
@@ -58,9 +58,14 @@ export default async function CourseDetailPage({
   }
 
   const displayName =
-    profile?.atc_name || profile?.full_name || user.email || 'User'
+    profile?.atp_name || profile?.full_name || user.email || 'User'
 
   const fmt = (d: string | null) => (d ? new Date(d).toLocaleDateString() : '—')
+
+  const totalStudents = candidates?.length ?? 0
+  const paidStudents = (candidates ?? []).filter((c: any) => c.paid).length
+  const unpaidStudents = totalStudents - paidStudents
+  const isApproved = course.status === 'approved'
 
   return (
     <AppLayout userName={displayName}>
@@ -82,14 +87,21 @@ export default async function CourseDetailPage({
           >
             + Add Students
           </Link>
-          {course.status !== 'approved' && (
+          {!isApproved ? (
             <Link
               href={`/courses/${id}/purchase`}
               className='btn btn-success btn-sm'
             >
-              Pay & Activate
+              Purchase Course
             </Link>
-          )}
+          ) : unpaidStudents > 0 ? (
+            <Link
+              href={`/courses/${id}/purchase`}
+              className='btn btn-success btn-sm'
+            >
+              Pay for {unpaidStudents} New Student{unpaidStudents !== 1 ? 's' : ''}
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -132,25 +144,30 @@ export default async function CourseDetailPage({
         <div className='card'>
           <div className='card-header'>ATP Info</div>
           <div className='detail-grid'>
-            <div className='detail-label'>ATC Name</div>
-            <div className='detail-value'>{profile?.atc_name ?? '—'}</div>
-            <div className='detail-label'>ATC No</div>
-            <div className='detail-value'>{profile?.atc_no ?? '—'}</div>
+            <div className='detail-label'>ATP Name</div>
+            <div className='detail-value'>{profile?.atp_name ?? '—'}</div>
+            <div className='detail-label'>ATP No</div>
+            <div className='detail-value'>{profile?.atp_no ?? '—'}</div>
             <div className='detail-label'>Address</div>
-            <div className='detail-value'>{profile?.atc_address ?? '—'}</div>
+            <div className='detail-value'>{profile?.atp_address ?? '—'}</div>
             <div className='detail-label'>Students</div>
-            <div className='detail-value'>{candidates?.length ?? 0}</div>
-            {course.course_type?.price && (
+            <div className='detail-value'>
+              {totalStudents}
+              {totalStudents > 0 && (
+                <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+                  ({paidStudents} paid
+                  {unpaidStudents > 0 && <>, <span style={{ color: '#b45309' }}>{unpaidStudents} unpaid</span></>})
+                </span>
+              )}
+            </div>
+            {course.course_type?.price && unpaidStudents > 0 && (
               <>
-                <div className='detail-label'>Total Cost</div>
+                <div className='detail-label'>Outstanding</div>
                 <div
                   className='detail-value'
-                  style={{ fontWeight: 700, color: '#1976d2' }}
+                  style={{ fontWeight: 700, color: '#b45309' }}
                 >
-                  $
-                  {(
-                    course.course_type.price * (candidates?.length ?? 0)
-                  ).toFixed(2)}
+                  ${(course.course_type.price * unpaidStudents).toFixed(2)}
                 </div>
               </>
             )}
@@ -170,9 +187,9 @@ export default async function CourseDetailPage({
         }}
         profile={{
           id: profile?.id,
-          atc_name: profile?.atc_name ?? null,
-          atc_no: profile?.atc_no ?? null,
-          atc_address: profile?.atc_address ?? null,
+          atp_name: profile?.atp_name ?? null,
+          atp_no: profile?.atp_no ?? null,
+          atp_address: profile?.atp_address ?? null,
           deposit_balance: profile?.deposit_balance ?? 0,
         }}
         settings={settings}

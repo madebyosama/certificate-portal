@@ -9,9 +9,9 @@ export default async function DepositPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const { data: deposits } = await supabase.from('deposits').select('*').eq('atc_id', user.id).order('created_at', { ascending: false })
+  const { data: deposits } = await supabase.from('deposits').select('*').eq('atp_id', user.id).order('created_at', { ascending: false })
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   return (
     <AppLayout userName={displayName}>

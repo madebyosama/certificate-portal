@@ -15,8 +15,8 @@ export interface CertificateData {
   startDate: string | null
   endDate: string | null
   issueDate: string
-  atcName: string | null
-  atcNo: string | null
+  atpName: string | null
+  atpNo: string | null
   trainerName: string | null
   totalMarks: number | null
   status: string
@@ -199,11 +199,11 @@ export function buildCertificateHtml(d: CertificateData): string {
         </div>
         <div class="meta-item">
           <div class="meta-label">Training Centre</div>
-          <div class="meta-value">${escape(d.atcName || '—')}</div>
+          <div class="meta-value">${escape(d.atpName || '—')}</div>
         </div>
         <div class="meta-item">
           <div class="meta-label">Centre ID</div>
-          <div class="meta-value">${escape(d.atcNo || '—')}</div>
+          <div class="meta-value">${escape(d.atpNo || '—')}</div>
         </div>
       </div>
     </div>
@@ -225,7 +225,7 @@ export function buildCertificateHtml(d: CertificateData): string {
       <div class="sig-block">
         <div class="sig-image" style="font-family:'Brush Script MT','Apple Chancery',cursive;font-size:18pt;color:#0a1f4d;align-items:center;padding-bottom:3mm;white-space:nowrap;overflow:hidden;">Authorized Signatory</div>
         <div class="sig-line"></div>
-        <div class="sig-name">${escape(d.atcName || 'Training Centre')}</div>
+        <div class="sig-name">${escape(d.atpName || 'Training Centre')}</div>
         <div class="sig-role">Approved Training Centre</div>
       </div>
     </div>

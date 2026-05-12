@@ -2,14 +2,14 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-interface ATP { id: string; atc_name: string | null; full_name: string | null; email: string | null }
+interface ATP { id: string; atp_name: string | null; full_name: string | null; email: string | null }
 interface Ann { id: string; title: string; body: string; target: string; created_at: string }
 
 export default function AnnouncementsClient({ announcements: initial, atps, adminId }: { announcements: Ann[]; atps: ATP[]; adminId: string }) {
   const supabase = createClient()
   const [announcements, setAnnouncements] = useState<Ann[]>(initial)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ title: '', body: '', target: 'all', target_atc_id: '' })
+  const [form, setForm] = useState({ title: '', body: '', target: 'all', target_atp_id: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -17,19 +17,19 @@ export default function AnnouncementsClient({ announcements: initial, atps, admi
   async function send(e: React.FormEvent) {
     e.preventDefault()
     if (!form.title || !form.body) { setError('Title and message are required.'); return }
-    if (form.target === 'specific' && !form.target_atc_id) { setError('Please select an ATP.'); return }
+    if (form.target === 'specific' && !form.target_atp_id) { setError('Please select an ATP.'); return }
     setLoading(true); setError(''); setSuccess('')
 
     const { data, error } = await supabase.from('announcements').insert({
       title: form.title, body: form.body,
-      target: form.target, target_atc_id: form.target === 'specific' ? form.target_atc_id : null,
+      target: form.target, target_atp_id: form.target === 'specific' ? form.target_atp_id : null,
       created_by: adminId,
     }).select().single()
 
     setLoading(false)
     if (error) { setError(error.message); return }
     setAnnouncements(p => [data, ...p])
-    setForm({ title: '', body: '', target: 'all', target_atc_id: '' })
+    setForm({ title: '', body: '', target: 'all', target_atp_id: '' })
     setShowForm(false)
     setSuccess('Announcement sent successfully.')
   }
@@ -56,7 +56,7 @@ export default function AnnouncementsClient({ announcements: initial, atps, admi
                 <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Target</label>
-                    <select className="form-select" value={form.target} onChange={e => setForm(p => ({ ...p, target: e.target.value, target_atc_id: '' }))}>
+                    <select className="form-select" value={form.target} onChange={e => setForm(p => ({ ...p, target: e.target.value, target_atp_id: '' }))}>
                       <option value="all">All ATPs</option>
                       <option value="specific">Specific ATP</option>
                     </select>
@@ -64,9 +64,9 @@ export default function AnnouncementsClient({ announcements: initial, atps, admi
                   {form.target === 'specific' && (
                     <div className="form-group">
                       <label className="form-label">Select ATP <span className="required">*</span></label>
-                      <select className="form-select" value={form.target_atc_id} onChange={e => setForm(p => ({ ...p, target_atc_id: e.target.value }))}>
+                      <select className="form-select" value={form.target_atp_id} onChange={e => setForm(p => ({ ...p, target_atp_id: e.target.value }))}>
                         <option value="">— Select ATP —</option>
-                        {atps.map(a => <option key={a.id} value={a.id}>{a.atc_name || a.full_name || a.email}</option>)}
+                        {atps.map(a => <option key={a.id} value={a.id}>{a.atp_name || a.full_name || a.email}</option>)}
                       </select>
                     </div>
                   )}

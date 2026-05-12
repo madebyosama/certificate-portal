@@ -9,11 +9,11 @@ export default async function InvoicesPage() {
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const [{ data: invoices }, { data: otherInvoices }] = await Promise.all([
-    supabase.from('invoices').select('*, course:courses(course_title,reference_number)').eq('atc_id', user.id).order('issued_at', { ascending: false }),
-    supabase.from('other_invoices').select('*').eq('atc_id', user.id).order('issued_at', { ascending: false }),
+    supabase.from('invoices').select('*, course:courses(course_title,reference_number)').eq('atp_id', user.id).order('issued_at', { ascending: false }),
+    supabase.from('other_invoices').select('*').eq('atp_id', user.id).order('issued_at', { ascending: false }),
   ])
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
   const totalPaid = (invoices ?? []).filter((i: any) => i.status === 'paid').reduce((sum: number, i: any) => sum + i.amount, 0)
 
   return (

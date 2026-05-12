@@ -15,9 +15,9 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
   // Add-ATP form state
   const [newEmail, setNewEmail] = useState('')
   const [newFullName, setNewFullName] = useState('')
-  const [newAtcName, setNewAtcName] = useState('')
-  const [newAtcNo, setNewAtcNo] = useState('')
-  const [newAtcAddress, setNewAtcAddress] = useState('')
+  const [newAtpName, setNewAtpName] = useState('')
+  const [newAtpNo, setNewAtpNo] = useState('')
+  const [newAtpAddress, setNewAtpAddress] = useState('')
   const [addError, setAddError] = useState('')
   const [addInfo, setAddInfo] = useState('')
   const [adding, setAdding] = useState(false)
@@ -32,9 +32,9 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
   function resetForm() {
     setNewEmail('')
     setNewFullName('')
-    setNewAtcName('')
-    setNewAtcNo('')
-    setNewAtcAddress('')
+    setNewAtpName('')
+    setNewAtpNo('')
+    setNewAtpAddress('')
     setAddError('')
     setAddInfo('')
   }
@@ -57,9 +57,9 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
         body: JSON.stringify({
           email: newEmail,
           full_name: newFullName,
-          atc_name: newAtcName,
-          atc_no: newAtcNo,
-          atc_address: newAtcAddress,
+          atp_name: newAtpName,
+          atp_no: newAtpNo,
+          atp_address: newAtpAddress,
         }),
       })
       const json = await res.json()
@@ -78,9 +78,9 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
           id: json.user.id,
           email: json.user.email,
           full_name: json.user.full_name,
-          atc_name: json.user.atc_name,
-          atc_no: json.user.atc_no,
-          atc_address: json.user.atc_address,
+          atp_name: json.user.atp_name,
+          atp_no: json.user.atp_no,
+          atp_address: json.user.atp_address,
           kyc_verified: false,
           deposit_balance: 0,
           is_admin: false,
@@ -99,7 +99,7 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
   }
 
   const filtered = atps.filter(a =>
-    [a.atc_name, a.full_name, a.email, a.atc_no].join(' ').toLowerCase().includes(search.toLowerCase())
+    [a.atp_name, a.full_name, a.email, a.atp_no].join(' ').toLowerCase().includes(search.toLowerCase())
   )
 
   const unverified = filtered.filter(a => !a.kyc_verified).length
@@ -116,7 +116,7 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
           <span>All ATPs ({filtered.length})</span>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div className="table-search" style={{ padding: 0 }}>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, ATC no..."
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, ATP no..."
                 style={{ border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 4, padding: '3px 8px', fontSize: '0.775rem', outline: 'none' }} />
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>+ Add ATP</button>
@@ -125,15 +125,15 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
-              <tr><th>ATC Name</th><th>ATC No</th><th>Email</th><th>Balance</th><th>Verified</th><th>Joined</th><th>Actions</th></tr>
+              <tr><th>ATP Name</th><th>ATP No</th><th>Email</th><th>Balance</th><th>Verified</th><th>Joined</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="empty-state">No ATPs found.</td></tr>
               ) : filtered.map(a => (
                 <tr key={a.id}>
-                  <td style={{ fontWeight: 500 }}>{a.atc_name || a.full_name || '—'}</td>
-                  <td style={{ fontSize: '0.775rem', color: '#6b7280' }}>{a.atc_no || '—'}</td>
+                  <td style={{ fontWeight: 500 }}>{a.atp_name || a.full_name || '—'}</td>
+                  <td style={{ fontSize: '0.775rem', color: '#6b7280' }}>{a.atp_no || '—'}</td>
                   <td>{a.email || '—'}</td>
                   <td style={{ fontWeight: 600, color: '#1976d2' }}>${(a.deposit_balance ?? 0).toFixed(2)}</td>
                   <td>
@@ -220,23 +220,23 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">ATC Name</label>
+                  <label className="form-label">ATP Name</label>
                   <input
                     className="form-input"
                     type="text"
-                    value={newAtcName}
-                    onChange={e => setNewAtcName(e.target.value)}
+                    value={newAtpName}
+                    onChange={e => setNewAtpName(e.target.value)}
                     placeholder="Training center name"
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">ATC Number</label>
+                  <label className="form-label">ATP Number</label>
                   <input
                     className="form-input"
                     type="text"
-                    value={newAtcNo}
-                    onChange={e => setNewAtcNo(e.target.value)}
-                    placeholder="e.g. ATC-1234"
+                    value={newAtpNo}
+                    onChange={e => setNewAtpNo(e.target.value)}
+                    placeholder="e.g. ATP-1234"
                   />
                 </div>
                 <div className="form-group">
@@ -244,8 +244,8 @@ export default function AtpsClient({ atps: initial }: { atps: Profile[] }) {
                   <input
                     className="form-input"
                     type="text"
-                    value={newAtcAddress}
-                    onChange={e => setNewAtcAddress(e.target.value)}
+                    value={newAtpAddress}
+                    onChange={e => setNewAtpAddress(e.target.value)}
                     placeholder="Street, city, country"
                   />
                 </div>

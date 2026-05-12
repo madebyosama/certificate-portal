@@ -7,7 +7,7 @@ const PRIORITY_COLORS: Record<string, string> = { low: '#9ca3af', normal: '#1976
 const STATUS_COLORS: Record<string, string> = { open: '#e53935', in_progress: '#f59e0b', resolved: '#43a047', closed: '#9ca3af' }
 
 type AdminTicket = SupportTicket & {
-  profile?: Pick<Profile, 'atc_name' | 'full_name' | 'email'> | null
+  profile?: Pick<Profile, 'atp_name' | 'full_name' | 'email'> | null
   messages: SupportMessage[]
 }
 
@@ -135,7 +135,7 @@ export default function SupportClient({ adminId, tickets: initial }: { adminId: 
                   </div>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: 4 }}>
-                  {t.profile?.atc_name || t.profile?.full_name || t.profile?.email || '—'}
+                  {t.profile?.atp_name || t.profile?.full_name || t.profile?.email || '—'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.7rem', color: STATUS_COLORS[t.status], fontWeight: 600, textTransform: 'capitalize' }}>
@@ -163,7 +163,7 @@ export default function SupportClient({ adminId, tickets: initial }: { adminId: 
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827', marginBottom: 4 }}>{selected.subject}</div>
               <div style={{ fontSize: '0.775rem', color: '#6b7280', marginBottom: 8 }}>
-                From: {selected.profile?.atc_name || selected.profile?.full_name || selected.profile?.email}
+                From: {selected.profile?.atp_name || selected.profile?.full_name || selected.profile?.email}
               </div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                 <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>Priority: {selected.priority}</span>

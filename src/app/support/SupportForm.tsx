@@ -29,7 +29,7 @@ export default function SupportForm({ userId, tickets: initial }: { userId: stri
     if (!form.subject || !form.message) { setError('Subject and message are required.'); return }
     setLoading(true); setError(''); setSuccess('')
     const { data, error } = await supabase.from('support_tickets').insert({
-      atc_id: userId, subject: form.subject, message: form.message,
+      atp_id: userId, subject: form.subject, message: form.message,
       priority: form.priority, status: 'open',
       updated_at: new Date().toISOString(),
     }).select().single()

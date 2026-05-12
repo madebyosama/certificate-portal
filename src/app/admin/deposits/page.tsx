@@ -12,7 +12,7 @@ export default async function AdminDepositsPage() {
 
   const { data: deposits } = await supabase
     .from('deposits')
-    .select('*, profile:profiles(atc_name, full_name, email, deposit_balance)')
+    .select('*, profile:profiles(atp_name, full_name, email, deposit_balance)')
     .order('created_at', { ascending: false })
 
   return (

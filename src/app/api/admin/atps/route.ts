@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Validate input
-  let body: { email?: string; full_name?: string; atc_name?: string; atc_no?: string; atc_address?: string }
+  let body: { email?: string; full_name?: string; atp_name?: string; atp_no?: string; atp_address?: string }
   try {
     body = await request.json()
   } catch {
@@ -26,9 +26,9 @@ export async function POST(request: Request) {
 
   const email = (body.email ?? '').trim().toLowerCase()
   const full_name = (body.full_name ?? '').trim() || null
-  const atc_name = (body.atc_name ?? '').trim() || null
-  const atc_no = (body.atc_no ?? '').trim() || null
-  const atc_address = (body.atc_address ?? '').trim() || null
+  const atp_name = (body.atp_name ?? '').trim() || null
+  const atp_no = (body.atp_no ?? '').trim() || null
+  const atp_address = (body.atp_address ?? '').trim() || null
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const { origin } = new URL(request.url)
   const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${origin}/auth/callback?next=/reset-password`,
-    data: { full_name, atc_name },
+    data: { full_name, atp_name },
   })
 
   if (inviteError || !inviteData?.user) {
@@ -67,9 +67,9 @@ export async function POST(request: Request) {
       id: newUserId,
       email,
       full_name,
-      atc_name,
-      atc_no,
-      atc_address,
+      atp_name,
+      atp_no,
+      atp_address,
       is_admin: false,
     }, { onConflict: 'id' })
 
@@ -89,9 +89,9 @@ export async function POST(request: Request) {
       id: newUserId,
       email,
       full_name,
-      atc_name,
-      atc_no,
-      atc_address,
+      atp_name,
+      atp_no,
+      atp_address,
     },
   })
 }

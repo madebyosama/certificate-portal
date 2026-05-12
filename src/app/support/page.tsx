@@ -12,7 +12,7 @@ export default async function SupportPage() {
   const { data: tickets } = await supabase
     .from('support_tickets')
     .select('*, messages:support_messages(*)')
-    .eq('atc_id', user.id)
+    .eq('atp_id', user.id)
     .order('created_at', { ascending: false })
 
   // Sort messages within each ticket chronologically
@@ -23,7 +23,7 @@ export default async function SupportPage() {
     ),
   }))
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   return (
     <AppLayout userName={displayName}>

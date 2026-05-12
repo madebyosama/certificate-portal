@@ -89,11 +89,15 @@ export default function CoursesTable({ courses }: { courses: Course[] }) {
                           View Details
                         </div>
                         <div className="action-menu-item" onClick={() => { setOpenAction(null); router.push(`/courses/${course.id}/candidates`) }}>
-                          Add Students
+                          {course.status === 'approved' ? 'Add / Manage Students' : 'Add Students'}
                         </div>
-                        {course.status !== 'approved' && (
+                        {course.status !== 'approved' ? (
                           <div className="action-menu-item" style={{ color: '#1976d2', fontWeight: 600 }} onClick={() => { setOpenAction(null); router.push(`/courses/${course.id}/purchase`) }}>
-                            Pay & Activate
+                            Purchase Course
+                          </div>
+                        ) : (
+                          <div className="action-menu-item" style={{ color: '#1976d2', fontWeight: 600 }} onClick={() => { setOpenAction(null); router.push(`/courses/${course.id}/purchase`) }}>
+                            Pay for New Students
                           </div>
                         )}
                       </div>

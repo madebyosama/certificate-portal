@@ -1,39 +1,62 @@
 'use client'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
 export default function DepositsClient({ deposits: initial }: { deposits: any[] }) {
-  const supabase = createClient()
+  const router = useRouter()
   const [deposits, setDeposits] = useState<any[]>(initial)
   const [loading, setLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+  const [error, setError] = useState<string>('')
 
   async function approve(deposit: any) {
     setLoading(deposit.id)
-    // Update deposit status
-    await supabase.from('deposits').update({ status: 'approved' }).eq('id', deposit.id)
-
-    // Credit ATP balance
-    const { data: prof } = await supabase.from('profiles').select('deposit_balance').eq('id', deposit.atc_id).single()
-    const newBal = (prof?.deposit_balance ?? 0) + deposit.amount
-    await supabase.from('profiles').update({ deposit_balance: newBal }).eq('id', deposit.atc_id)
-
-    // Log transaction
-    await supabase.from('transactions').insert({
-      atc_id: deposit.atc_id, type: 'credit', amount: deposit.amount,
-      description: 'Deposit approved by admin',
-      reference: deposit.reference, balance_after: newBal,
-    })
-
-    setDeposits(p => p.map(d => d.id === deposit.id ? { ...d, status: 'approved' } : d))
-    setLoading(null)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/deposits/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deposit_id: deposit.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setError(json.error ?? 'Failed to approve deposit')
+        setLoading(null)
+        return
+      }
+      // Reflect the new status locally and ask the server component
+      // (which is what feeds the ATP's dashboard balance) to refresh.
+      setDeposits(p => p.map(d => d.id === deposit.id ? { ...d, status: 'approved' } : d))
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setLoading(null)
+    }
   }
 
   async function reject(deposit: any) {
     setLoading(deposit.id + '_reject')
-    await supabase.from('deposits').update({ status: 'rejected' }).eq('id', deposit.id)
-    setDeposits(p => p.map(d => d.id === deposit.id ? { ...d, status: 'rejected' } : d))
-    setLoading(null)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/deposits/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deposit_id: deposit.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setError(json.error ?? 'Failed to reject deposit')
+        setLoading(null)
+        return
+      }
+      setDeposits(p => p.map(d => d.id === deposit.id ? { ...d, status: 'rejected' } : d))
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setLoading(null)
+    }
   }
 
   const filtered = filter === 'all' ? deposits : deposits.filter(d => d.status === filter)
@@ -41,6 +64,9 @@ export default function DepositsClient({ deposits: initial }: { deposits: any[] 
 
   return (
     <>
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>
+      )}
       {pending > 0 && (
         <div className="alert alert-info" style={{ marginBottom: 16 }}>
           {pending} deposit{pending !== 1 ? 's' : ''} pending your approval.
@@ -71,10 +97,10 @@ export default function DepositsClient({ deposits: initial }: { deposits: any[] 
                 <tr key={d.id}>
                   <td>{new Date(d.created_at).toLocaleDateString()}</td>
                   <td>
-                    <div style={{ fontWeight: 500 }}>{d.profile?.atc_name || d.profile?.full_name || '—'}</div>
+                    <div style={{ fontWeight: 500 }}>{d.profile?.atp_name || d.profile?.full_name || '—'}</div>
                     <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{d.profile?.email}</div>
                   </td>
-                  <td style={{ fontWeight: 700, color: '#43a047', fontSize: '0.95rem' }}>${d.amount.toFixed(2)}</td>
+                  <td style={{ fontWeight: 700, color: '#43a047', fontSize: '0.95rem' }}>${Number(d.amount).toFixed(2)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{d.payment_method?.replace('_', ' ') ?? '—'}</td>
                   <td style={{ fontSize: '0.775rem', color: '#6b7280' }}>{d.reference || '—'}</td>
                   <td><span className={`badge badge-${d.status === 'approved' ? 'approved' : d.status === 'rejected' ? 'rejected' : 'pending'}`}>{d.status}</span></td>

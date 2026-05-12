@@ -17,9 +17,9 @@ interface Course {
 
 interface Profile {
   id: string
-  atc_name: string | null
-  atc_no: string | null
-  atc_address: string | null
+  atp_name: string | null
+  atp_no: string | null
+  atp_address: string | null
   deposit_balance: number | null
 }
 
@@ -55,6 +55,8 @@ export default function StudentsTable({
 
   // Hard-copy order modal state
   const [orderFor, setOrderFor] = useState<Candidate | null>(null)
+  // Edit candidate modal state
+  const [editFor, setEditFor] = useState<Candidate | null>(null)
 
   const courseEligible = course && true // certificate available regardless; could gate on course.status === 'approved'
 
@@ -80,6 +82,12 @@ export default function StudentsTable({
    * window.print() so the user can "Save as PDF".
    */
   async function handleDownload(c: Candidate) {
+    if (!c.paid) {
+      setError(
+        `Cannot issue a certificate — payment for ${c.first_name} ${c.last_name} has not been made yet.`
+      )
+      return
+    }
     if (c.status !== 'pass') {
       setError(
         `Cannot issue a certificate — ${c.first_name} ${c.last_name} has not passed (status: ${c.status}).`
@@ -104,7 +112,11 @@ export default function StudentsTable({
       setCandidates((prev) =>
         prev.map((x) =>
           x.id === c.id
-            ? { ...x, certificate_no: certNo, certificate_issued_at: new Date().toISOString() }
+            ? {
+                ...x,
+                certificate_no: certNo,
+                certificate_issued_at: new Date().toISOString(),
+              }
             : x
         )
       )
@@ -130,8 +142,8 @@ export default function StudentsTable({
       startDate: course.start_date,
       endDate: course.end_date,
       issueDate: c.certificate_issued_at || new Date().toISOString(),
-      atcName: profile.atc_name,
-      atcNo: profile.atc_no,
+      atpName: profile.atp_name,
+      atpNo: profile.atp_no,
       trainerName: course.trainer
         ? `${course.trainer.first_name} ${course.trainer.last_name}`
         : null,
@@ -147,6 +159,12 @@ export default function StudentsTable({
   }
 
   function openOrder(c: Candidate) {
+    if (!c.paid) {
+      setError(
+        `Cannot order a hard copy — payment for ${c.first_name} ${c.last_name} has not been made yet.`
+      )
+      return
+    }
     if (c.status !== 'pass') {
       setError(
         `Cannot order a hard copy — ${c.first_name} ${c.last_name} has not passed.`
@@ -155,6 +173,35 @@ export default function StudentsTable({
     }
     setError('')
     setOrderFor(c)
+  }
+
+  function openEdit(c: Candidate) {
+    setError('')
+    setEditFor(c)
+  }
+
+  async function handleDelete(c: Candidate) {
+    if (c.paid) {
+      setError(
+        `Cannot delete ${c.first_name} ${c.last_name} — payment has already been made for this student.`
+      )
+      return
+    }
+    if (!confirm(`Remove ${c.first_name} ${c.last_name} from this course?`))
+      return
+    setError('')
+    setBusyId(c.id)
+    const { error: delErr } = await supabase
+      .from('candidates')
+      .delete()
+      .eq('id', c.id)
+      .eq('paid', false) // belt-and-braces: never delete a paid candidate
+    setBusyId(null)
+    if (delErr) {
+      setError(delErr.message)
+      return
+    }
+    setCandidates((prev) => prev.filter((x) => x.id !== c.id))
   }
 
   return (
@@ -168,7 +215,11 @@ export default function StudentsTable({
       <div className='card'>
         <div
           className='card-header'
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
         >
           <span>Students ({candidates.length})</span>
         </div>
@@ -216,6 +267,7 @@ export default function StudentsTable({
                 <th>Marks 2</th>
                 <th>Total</th>
                 <th>Status</th>
+                <th>Payment</th>
                 <th>Certificate No</th>
                 <th>Actions</th>
               </tr>
@@ -223,7 +275,7 @@ export default function StudentsTable({
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className='empty-state'>
+                  <td colSpan={11} className='empty-state'>
                     {candidates.length === 0
                       ? 'No students yet.'
                       : 'No students match your search.'}
@@ -242,7 +294,30 @@ export default function StudentsTable({
                     <td>{c.assessment_marks_2 ?? '—'}</td>
                     <td>{c.total_marks}</td>
                     <td>
-                      <span className={`badge badge-${c.status}`}>{c.status}</span>
+                      <span className={`badge badge-${c.status}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td>
+                      {c.paid ? (
+                        <span
+                          className='badge badge-approved'
+                          title={
+                            c.paid_at
+                              ? `Paid on ${new Date(c.paid_at).toLocaleDateString()}`
+                              : 'Paid'
+                          }
+                        >
+                          paid
+                        </span>
+                      ) : (
+                        <span
+                          className='badge badge-pending'
+                          title='Awaiting payment'
+                        >
+                          unpaid
+                        </span>
+                      )}
                     </td>
                     <td
                       style={{
@@ -257,20 +332,38 @@ export default function StudentsTable({
                       <div className='icon-btn-row'>
                         <button
                           type='button'
-                          title='Download certificate (PDF)'
+                          title={
+                            !c.paid
+                              ? 'Pay for this student to unlock the certificate'
+                              : c.status !== 'pass'
+                                ? `Cannot issue — status: ${c.status}`
+                                : 'Download certificate (PDF)'
+                          }
                           onClick={() => handleDownload(c)}
-                          disabled={busyId === c.id || c.status !== 'pass'}
+                          disabled={
+                            busyId === c.id || !c.paid || c.status !== 'pass'
+                          }
                           style={{
                             padding: 0,
                             background: 'transparent',
                             border: 'none',
                             cursor:
-                              c.status !== 'pass' ? 'not-allowed' : 'pointer',
-                            opacity: c.status !== 'pass' ? 0.35 : 1,
+                              !c.paid || c.status !== 'pass'
+                                ? 'not-allowed'
+                                : 'pointer',
+                            opacity: !c.paid || c.status !== 'pass' ? 0.35 : 1,
                           }}
                         >
                           {busyId === c.id ? (
-                            <span className='spinner' style={{ borderColor: '#cbd5e1', borderTopColor: '#2B317A', width: 22, height: 22 }} />
+                            <span
+                              className='spinner'
+                              style={{
+                                borderColor: '#cbd5e1',
+                                borderTopColor: '#2B317A',
+                                width: 22,
+                                height: 22,
+                              }}
+                            />
                           ) : (
                             <svg
                               width='32'
@@ -313,16 +406,24 @@ export default function StudentsTable({
 
                         <button
                           type='button'
-                          title='Order hard-copy certificate'
+                          title={
+                            !c.paid
+                              ? 'Pay for this student to unlock hard-copy ordering'
+                              : c.status !== 'pass'
+                                ? `Cannot order — status: ${c.status}`
+                                : 'Order Hard Copy Certificate'
+                          }
                           onClick={() => openOrder(c)}
-                          disabled={c.status !== 'pass'}
+                          disabled={!c.paid || c.status !== 'pass'}
                           style={{
                             padding: 0,
                             background: 'transparent',
                             border: 'none',
                             cursor:
-                              c.status !== 'pass' ? 'not-allowed' : 'pointer',
-                            opacity: c.status !== 'pass' ? 0.35 : 1,
+                              !c.paid || c.status !== 'pass'
+                                ? 'not-allowed'
+                                : 'pointer',
+                            opacity: !c.paid || c.status !== 'pass' ? 0.35 : 1,
                           }}
                         >
                           <svg
@@ -332,57 +433,54 @@ export default function StudentsTable({
                             fill='none'
                             xmlns='http://www.w3.org/2000/svg'
                           >
-                            <rect
-                              x='3'
-                              y='9'
-                              width='26'
-                              height='15'
-                              rx='2'
-                              fill='#00acc1'
-                            />
                             <path
-                              d='M3 13 H29'
-                              stroke='#fff'
-                              strokeWidth='1.5'
-                              opacity='0.6'
-                            />
-                            <path
-                              d='M9 9 L 9 5 a2 2 0 0 1 2 -2 h10 a2 2 0 0 1 2 2 v4'
-                              stroke='#0a1628'
-                              strokeWidth='1.8'
-                              fill='none'
-                            />
-                            <circle cx='16' cy='19' r='3' fill='#fff' />
-                            <text
-                              x='16'
-                              y='21'
-                              textAnchor='middle'
-                              fontSize='5'
-                              fontWeight='700'
-                              fill='#00acc1'
-                              fontFamily='Arial'
-                            >
-                              $
-                            </text>
-                            <path
-                              d='M21 26 L 23 28 L 27 24'
-                              stroke='#43a047'
-                              strokeWidth='2.5'
-                              fill='none'
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                            />
-                            <circle cx='25' cy='26' r='4' fill='#fff' />
-                            <path
-                              d='M22.8 26 L 24.4 27.5 L 27.2 24.8'
-                              stroke='#43a047'
-                              strokeWidth='1.8'
-                              fill='none'
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
+                              d='M3.2 7.2C3.2 5.435 4.635 4 6.4 4H20.8C22.565 4 24 5.435 24 7.2V8.8H26.535C27.385 8.8 28.2 9.135 28.8 9.735L31.065 12C31.665 12.6 32 13.415 32 14.265V21.6C32 23.365 30.565 24.8 28.8 24.8H28.635C28.115 26.645 26.415 28 24.4 28C22.385 28 20.69 26.645 20.165 24.8H15.035C14.515 26.645 12.815 28 10.8 28C8.785 28 7.09 26.645 6.565 24.8H6.4C4.635 24.8 3.2 23.365 3.2 21.6V19.2H1.2C0.535 19.2 0 18.665 0 18C0 17.335 0.535 16.8 1.2 16.8H6.8C7.465 16.8 8 16.265 8 15.6C8 14.935 7.465 14.4 6.8 14.4H1.2C0.535 14.4 0 13.865 0 13.2C0 12.535 0.535 12 1.2 12H10C10.665 12 11.2 11.465 11.2 10.8C11.2 10.135 10.665 9.6 10 9.6H1.2C0.535 9.6 0 9.065 0 8.4C0 7.735 0.535 7.2 1.2 7.2H3.2ZM28.8 16.8V14.265L26.535 12H24V16.8H28.8ZM12.8 23.6C12.8 22.495 11.905 21.6 10.8 21.6C9.695 21.6 8.8 22.495 8.8 23.6C8.8 24.705 9.695 25.6 10.8 25.6C11.905 25.6 12.8 24.705 12.8 23.6ZM24.4 25.6C25.505 25.6 26.4 24.705 26.4 23.6C26.4 22.495 25.505 21.6 24.4 21.6C23.295 21.6 22.4 22.495 22.4 23.6C22.4 24.705 23.295 25.6 24.4 25.6Z'
+                              fill='#2B317A'
                             />
                           </svg>
                         </button>
+
+                        {/* Edit — always available */}
+                        <button
+                          type='button'
+                          title='Edit student details'
+                          onClick={() => openEdit(c)}
+                          disabled={busyId === c.id}
+                          style={{
+                            padding: '4px 10px',
+                            background: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            color: '#374151',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Edit
+                        </button>
+
+                        {/* Delete — only allowed while still unpaid */}
+                        {!c.paid && (
+                          <button
+                            type='button'
+                            title='Remove this student (only available before payment)'
+                            onClick={() => handleDelete(c)}
+                            disabled={busyId === c.id}
+                            style={{
+                              padding: '4px 10px',
+                              background: '#fee2e2',
+                              border: '1px solid #fecaca',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              color: '#b91c1c',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {busyId === c.id ? '...' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -403,6 +501,19 @@ export default function StudentsTable({
           onPlaced={() => {
             setOrderFor(null)
             router.refresh()
+          }}
+        />
+      )}
+
+      {editFor && (
+        <EditCandidateModal
+          candidate={editFor}
+          onClose={() => setEditFor(null)}
+          onSaved={(updated) => {
+            setCandidates((prev) =>
+              prev.map((x) => (x.id === updated.id ? updated : x))
+            )
+            setEditFor(null)
           }}
         />
       )}
@@ -450,7 +561,9 @@ function OrderHardCopyModal({
   const certificatePrice = Number(settings.hardcopyPrice) || 0
   const deliveryPrice = Number(settings.deliveryPrice) || 0
   const taxableBase = certificatePrice + deliveryPrice
-  const taxAmount = Number((taxableBase * Number(settings.taxRate || 0)).toFixed(2))
+  const taxAmount = Number(
+    (taxableBase * Number(settings.taxRate || 0)).toFixed(2)
+  )
   const total = Number((taxableBase + taxAmount).toFixed(2))
 
   const balance = Number(profile.deposit_balance || 0)
@@ -482,7 +595,9 @@ function OrderHardCopyModal({
       return
     }
     if (method === 'stripe') {
-      setError('Card payments are coming soon — please use account balance for now.')
+      setError(
+        'Card payments are coming soon — please use account balance for now.'
+      )
       return
     }
 
@@ -491,9 +606,12 @@ function OrderHardCopyModal({
     // Ensure the candidate has a certificate number — issue one if needed
     let certNo = candidate.certificate_no
     if (!certNo) {
-      const { data, error: rpcErr } = await supabase.rpc('issue_certificate_no', {
-        p_candidate_id: candidate.id,
-      })
+      const { data, error: rpcErr } = await supabase.rpc(
+        'issue_certificate_no',
+        {
+          p_candidate_id: candidate.id,
+        }
+      )
       if (rpcErr || !data) {
         setError(rpcErr?.message || 'Failed to issue certificate number.')
         setLoading(false)
@@ -504,31 +622,29 @@ function OrderHardCopyModal({
 
     const orderNumber = `CRT-ORD-${Date.now()}`
 
-    const { error: insErr } = await supabase
-      .from('certificate_orders')
-      .insert({
-        order_number: orderNumber,
-        atc_id: profile.id,
-        candidate_id: candidate.id,
-        course_id: course.id,
-        certificate_no: certNo,
-        recipient_name: form.recipient_name.trim(),
-        address_line1: form.address_line1.trim(),
-        address_line2: form.address_line2.trim() || null,
-        city: form.city.trim(),
-        state_region: form.state_region.trim() || null,
-        postal_code: form.postal_code.trim(),
-        country: form.country.trim(),
-        phone: form.phone.trim() || null,
-        certificate_price: certificatePrice,
-        delivery_price: deliveryPrice,
-        tax_amount: taxAmount,
-        total_amount: total,
-        payment_method: method,
-        status: 'paid',
-        notes: form.notes.trim() || null,
-        paid_at: new Date().toISOString(),
-      })
+    const { error: insErr } = await supabase.from('certificate_orders').insert({
+      order_number: orderNumber,
+      atp_id: profile.id,
+      candidate_id: candidate.id,
+      course_id: course.id,
+      certificate_no: certNo,
+      recipient_name: form.recipient_name.trim(),
+      address_line1: form.address_line1.trim(),
+      address_line2: form.address_line2.trim() || null,
+      city: form.city.trim(),
+      state_region: form.state_region.trim() || null,
+      postal_code: form.postal_code.trim(),
+      country: form.country.trim(),
+      phone: form.phone.trim() || null,
+      certificate_price: certificatePrice,
+      delivery_price: deliveryPrice,
+      tax_amount: taxAmount,
+      total_amount: total,
+      payment_method: method,
+      status: 'paid',
+      notes: form.notes.trim() || null,
+      paid_at: new Date().toISOString(),
+    })
 
     if (insErr) {
       setError(insErr.message)
@@ -545,7 +661,7 @@ function OrderHardCopyModal({
         .eq('id', profile.id)
       if (!pErr) {
         await supabase.from('transactions').insert({
-          atc_id: profile.id,
+          atp_id: profile.id,
           type: 'debit',
           amount: total,
           description: `Hard-copy certificate for ${candidate.first_name} ${candidate.last_name} (${certNo})`,
@@ -557,14 +673,16 @@ function OrderHardCopyModal({
 
     // Also log into other_invoices so it appears in the invoices view
     await supabase.from('other_invoices').insert({
-      atc_id: profile.id,
+      atp_id: profile.id,
       description: `Hard-copy certificate · ${certNo} · ${form.recipient_name.trim()}`,
       amount: total,
       status: 'paid',
     })
 
     setLoading(false)
-    setSuccess(`Order placed — ${orderNumber}. It will be printed and shipped shortly.`)
+    setSuccess(
+      `Order placed — ${orderNumber}. It will be printed and shipped shortly.`
+    )
     setTimeout(onPlaced, 1500)
   }
 
@@ -607,7 +725,7 @@ function OrderHardCopyModal({
         >
           <div>
             <div style={{ fontSize: '1rem', fontWeight: 700 }}>
-              Order Hard-Copy Certificate
+              Order Hard Copy Certificate
             </div>
             <div style={{ fontSize: '0.775rem', opacity: 0.7, marginTop: 2 }}>
               {candidate.first_name} {candidate.last_name} ·{' '}
@@ -723,7 +841,9 @@ function OrderHardCopyModal({
               />
             </div>
             <div className='form-group full-width'>
-              <label className='form-label'>Notes for printing / delivery</label>
+              <label className='form-label'>
+                Notes for printing / delivery
+              </label>
               <textarea
                 className='form-textarea'
                 rows={2}
@@ -778,7 +898,9 @@ function OrderHardCopyModal({
                   fontWeight: 600,
                 }}
               >
-                {enoughBalance ? '✓ Sufficient balance' : '✗ Insufficient balance'}
+                {enoughBalance
+                  ? '✓ Sufficient balance'
+                  : '✗ Insufficient balance'}
               </div>
               <div
                 style={{
@@ -844,7 +966,11 @@ function OrderHardCopyModal({
               type='button'
               className='btn btn-success'
               onClick={place}
-              disabled={loading || (method === 'deposit' && !enoughBalance) || method === 'stripe'}
+              disabled={
+                loading ||
+                (method === 'deposit' && !enoughBalance) ||
+                method === 'stripe'
+              }
             >
               {loading ? (
                 <>
@@ -852,6 +978,303 @@ function OrderHardCopyModal({
                 </>
               ) : (
                 <>Confirm Order · ${total.toFixed(2)}</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Edit candidate modal                                               */
+/* ------------------------------------------------------------------ */
+
+const COUNTRIES = [
+  'United Kingdom',
+  'United States',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Qatar',
+  'Kuwait',
+  'Bahrain',
+  'Oman',
+  'Pakistan',
+  'India',
+  'Bangladesh',
+  'Egypt',
+  'Jordan',
+  'Lebanon',
+  'Philippines',
+  'Nigeria',
+  'South Africa',
+  'Canada',
+  'Australia',
+  'Germany',
+  'France',
+]
+
+function EditCandidateModal({
+  candidate,
+  onClose,
+  onSaved,
+}: {
+  candidate: Candidate
+  onClose: () => void
+  onSaved: (c: Candidate) => void
+}) {
+  const supabase = createClient()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState({
+    first_name: candidate.first_name || '',
+    last_name: candidate.last_name || '',
+    email: candidate.email || '',
+    date_of_birth: candidate.date_of_birth || '',
+    country: candidate.country || '',
+    assessment_marks_1: candidate.assessment_marks_1?.toString() ?? '',
+    assessment_marks_2: candidate.assessment_marks_2?.toString() ?? '',
+    total_marks: candidate.total_marks?.toString() ?? '100',
+    status: candidate.status || 'pending',
+  })
+
+  function set<K extends keyof typeof form>(k: K, v: string) {
+    setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  async function save() {
+    setError('')
+    if (!form.first_name || !form.last_name || !form.email) {
+      setError('First name, last name, and email are required.')
+      return
+    }
+    setLoading(true)
+    const { data, error: updErr } = await supabase
+      .from('candidates')
+      .update({
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        date_of_birth: form.date_of_birth || null,
+        country: form.country || null,
+        assessment_marks_1: form.assessment_marks_1
+          ? Number(form.assessment_marks_1)
+          : null,
+        assessment_marks_2: form.assessment_marks_2
+          ? Number(form.assessment_marks_2)
+          : null,
+        total_marks: Number(form.total_marks) || 100,
+        status: form.status,
+      })
+      .eq('id', candidate.id)
+      .select()
+      .single()
+    setLoading(false)
+    if (updErr) {
+      setError(updErr.message)
+      return
+    }
+    onSaved(data as Candidate)
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(10,22,40,0.55)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          borderRadius: 12,
+          maxWidth: 720,
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        }}
+      >
+        <div
+          style={{
+            padding: '14px 20px',
+            background: '#0a1628',
+            color: '#fff',
+            borderRadius: '12px 12px 0 0',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 700 }}>
+              Edit Student
+            </div>
+            <div style={{ fontSize: '0.775rem', opacity: 0.7, marginTop: 2 }}>
+              {candidate.first_name} {candidate.last_name}
+              {candidate.paid && (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: '0.7rem',
+                    color: '#86efac',
+                  }}
+                >
+                  · paid (cannot be deleted)
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              color: '#fff',
+              border: 'none',
+              fontSize: '1.4rem',
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: 20 }}>
+          {error && (
+            <div className='alert alert-error' style={{ marginBottom: 12 }}>
+              {error}
+            </div>
+          )}
+
+          <div className='form-grid-3' style={{ marginBottom: 14 }}>
+            <div className='form-group'>
+              <label className='form-label'>
+                First Name <span className='required'>*</span>
+              </label>
+              <input
+                className='form-input'
+                value={form.first_name}
+                onChange={(e) => set('first_name', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>
+                Last Name <span className='required'>*</span>
+              </label>
+              <input
+                className='form-input'
+                value={form.last_name}
+                onChange={(e) => set('last_name', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>
+                Email <span className='required'>*</span>
+              </label>
+              <input
+                type='email'
+                className='form-input'
+                value={form.email}
+                onChange={(e) => set('email', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Date of Birth</label>
+              <input
+                type='date'
+                className='form-input'
+                value={form.date_of_birth}
+                onChange={(e) => set('date_of_birth', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Country</label>
+              <select
+                className='form-select'
+                value={form.country}
+                onChange={(e) => set('country', e.target.value)}
+              >
+                <option value=''>— Select Country —</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Status</label>
+              <select
+                className='form-select'
+                value={form.status}
+                onChange={(e) => set('status', e.target.value)}
+              >
+                <option value='pass'>Pass</option>
+                <option value='fail'>Fail</option>
+                <option value='pending'>Pending</option>
+              </select>
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Assessment 1</label>
+              <input
+                type='number'
+                className='form-input'
+                value={form.assessment_marks_1}
+                onChange={(e) => set('assessment_marks_1', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Assessment 2</label>
+              <input
+                type='number'
+                className='form-input'
+                value={form.assessment_marks_2}
+                onChange={(e) => set('assessment_marks_2', e.target.value)}
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label'>Total Marks</label>
+              <input
+                type='number'
+                className='form-input'
+                value={form.total_marks}
+                onChange={(e) => set('total_marks', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button
+              type='button'
+              className='btn btn-outline'
+              onClick={onClose}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type='button'
+              className='btn btn-success'
+              onClick={save}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className='spinner' /> Saving…
+                </>
+              ) : (
+                'Save Changes'
               )}
             </button>
           </div>

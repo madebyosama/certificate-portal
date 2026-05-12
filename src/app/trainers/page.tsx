@@ -9,9 +9,9 @@ export default async function TrainersPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  const { data: trainers } = await supabase.from('trainers').select('*').eq('atc_id', user.id).order('created_at', { ascending: false })
+  const { data: trainers } = await supabase.from('trainers').select('*').eq('atp_id', user.id).order('created_at', { ascending: false })
 
-  const displayName = profile?.atc_name || profile?.full_name || user.email || 'User'
+  const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
 
   return (
     <AppLayout userName={displayName}>

@@ -9,11 +9,11 @@ A full-stack training center management portal built with **Next.js 14**, **Supa
 - 📋 **Course Management** — Create courses, view reference numbers, manage status
 - 👤 **Candidate Management** — Add candidates with marks, assessment results, and status
 - 💳 **Purchase Flow** — Buy course packs via Deposit Account or Stripe
-- 👥 **Trainers** — Add/manage trainers per ATC
+- 👥 **Trainers** — Add/manage trainers per ATP
 - 🧾 **Invoices** — View course and other invoices
 - 💰 **Transactions** — Full transaction history with balance tracking
 - 🏦 **Deposits** — Request deposits, track approval status
-- 🎓 **Certificates** — Download branded PDF certificates with unique IDs (per-ATC sequence: `{ATC_NO}-CRT-000001` …)
+- 🎓 **Certificates** — Download branded PDF certificates with unique IDs (per-ATP sequence: `{ATP_NO}-CRT-000001` …)
 - 📦 **Hard-Copy Orders** — Order physical certificates with delivery address, subtotal + delivery + tax payment, and order history
 - 🔎 **Student Search** — Search students by name, email, country, serial, certificate no, or status
 
@@ -41,6 +41,7 @@ A full-stack training center management portal built with **Next.js 14**, **Supa
    - `admin-migration.sql` — admin role, support tickets, announcements
    - `support-messages-migration.sql` — support ticket threading
    - `certificate-migration.sql` — certificate numbering, hard-copy orders, and pricing settings
+   - `deposit-approval-migration.sql` — atomic `approve_deposit` RPC used by the admin deposit page
 3. Copy your Project URL and Anon Key from **Settings → API**
 
 ### Certificate pricing (admin)
@@ -57,7 +58,7 @@ To change a price, run e.g. `update app_settings set value = 20.00 where key = '
 
 ### Certificate number format
 
-Each certificate gets a unique ID per ATC, using `{ATC_NO}-CRT-{6-digit-seq}`. The sequence starts at `000001` for each ATC and increments atomically via the `next_cert_seq()` Postgres function — so a centre with ATC `ATC-20251108-1234` will issue `ATC-20251108-1234-CRT-000001`, `…-CRT-000002`, and so on. The number is assigned the first time a user downloads the certificate (or orders a hard copy) for that candidate, and is then locked — re-downloading reuses the same number.
+Each certificate gets a unique ID per ATP, using `{ATP_NO}-CRT-{6-digit-seq}`. The sequence starts at `000001` for each ATP and increments atomically via the `next_cert_seq()` Postgres function — so a centre with ATP `ATP-20251108-1234` will issue `ATP-20251108-1234-CRT-000001`, `…-CRT-000002`, and so on. The number is assigned the first time a user downloads the certificate (or orders a hard copy) for that candidate, and is then locked — re-downloading reuses the same number.
 
 ### 2. Install & Configure
 
@@ -131,9 +132,9 @@ src/
 
 | Table | Description |
 |---|---|
-| `profiles` | ATC user profiles, KYC status, deposit balance |
+| `profiles` | ATP user profiles, KYC status, deposit balance |
 | `course_types` | Predefined course catalog |
-| `trainers` | Trainers per ATC |
+| `trainers` | Trainers per ATP |
 | `courses` | Course instances (reference numbers) |
 | `candidates` | Candidates per course with marks |
 | `invoices` | Course purchase invoices |

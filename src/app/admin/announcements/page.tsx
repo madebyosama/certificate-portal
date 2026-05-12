@@ -12,7 +12,7 @@ export default async function AdminAnnouncementsPage() {
 
   const [{ data: announcements }, { data: atps }] = await Promise.all([
     supabase.from('announcements').select('*').order('created_at', { ascending: false }),
-    supabase.from('profiles').select('id, atc_name, full_name, email').eq('is_admin', false).order('atc_name'),
+    supabase.from('profiles').select('id, atp_name, full_name, email').eq('is_admin', false).order('atp_name'),
   ])
 
   return (

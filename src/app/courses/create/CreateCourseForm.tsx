@@ -28,7 +28,7 @@ export default function CreateCourseForm({ courseTypes, trainers, userId }: Prop
     }
     setLoading(true)
     const { data, error } = await supabase.from('courses').insert({
-      atc_id: userId,
+      atp_id: userId,
       course_type_id: form.course_type_id,
       trainer_id: form.trainer_id,
       course_title: selected?.title ?? '',
@@ -38,7 +38,8 @@ export default function CreateCourseForm({ courseTypes, trainers, userId }: Prop
     }).select().single()
     setLoading(false)
     if (error) { setError(error.message); return }
-    router.push(`/courses/${data.id}/candidates`)
+    // New flow: pay for the course (purchase fee) first, then add students.
+    router.push(`/courses/${data.id}/purchase`)
   }
 
   return (
@@ -86,7 +87,7 @@ export default function CreateCourseForm({ courseTypes, trainers, userId }: Prop
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? <><span className="spinner" /> Saving...</> : 'Next: Add Students →'}
+          {loading ? <><span className="spinner" /> Saving...</> : 'Next: Purchase Course →'}
         </button>
         <button type="button" className="btn btn-outline" onClick={() => router.back()}>Cancel</button>
       </div>
