@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[]
 
 export interface Profile {
   id: string
@@ -6,6 +12,7 @@ export interface Profile {
   atp_name: string | null
   atp_no: string | null
   atp_address: string | null
+  phone: string | null
   email: string | null
   kyc_verified: boolean
   deposit_balance: number
@@ -96,7 +103,13 @@ export interface CertificateOrder {
   tax_amount: number
   total_amount: number
   payment_method: 'deposit' | 'stripe' | null
-  status: 'pending' | 'paid' | 'printing' | 'shipped' | 'delivered' | 'cancelled'
+  status:
+    | 'pending'
+    | 'paid'
+    | 'printing'
+    | 'shipped'
+    | 'delivered'
+    | 'cancelled'
   tracking_number: string | null
   notes: string | null
   created_at: string
