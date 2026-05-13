@@ -88,15 +88,15 @@ export default function CoursesTable({ courses }: { courses: Course[] }) {
             ) : (
               paginated.map((course) => (
                 <tr key={course.id}>
+                  <td>{course.reference_number}</td>
                   <td>
                     <span
                       className='ref-link'
                       onClick={() => router.push(`/courses/${course.id}`)}
                     >
-                      {course.reference_number || '—'}
+                      {course.course_title || '—'}
                     </span>
                   </td>
-                  <td>{course.course_title}</td>
                   <td>
                     {course.trainer
                       ? `${course.trainer.first_name} ${course.trainer.last_name}`

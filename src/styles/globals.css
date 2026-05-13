@@ -59,7 +59,9 @@ img { display: block; max-width: 100%; }
 .card-body { padding: 18px; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
-.stat-card { background: linear-gradient(135deg, var(--blue-500), var(--blue-700)); border-radius: var(--radius-lg); padding: 18px; color: #fff; box-shadow: 0 4px 12px rgba(21,101,192,0.25); transition: transform var(--t); }
+.stat-card { background: linear-gradient(135deg, var(--blue-500), var(--blue-700)); 
+
+  border-radius: var(--radius-lg); padding: 18px; color: #fff; box-shadow: 0 4px 12px rgba(21,101,192,0.25); transition: transform var(--t); }
 .stat-card:hover { transform: translateY(-2px); }
 .stat-card-label { font-size: 0.7rem; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .stat-card-value { font-size: 1.8rem; font-weight: 700; line-height: 1; margin-bottom: 12px; }
