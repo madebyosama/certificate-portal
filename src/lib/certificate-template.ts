@@ -219,7 +219,7 @@ export function buildCertificateHtml(d: CertificateData): string {
       </div>
 
       <div class="sig-block">
-        <div class="sig-image" style="font-family:'Brush Script MT','Apple Chancery',cursive;font-size:18pt;color:#0a1f4d;align-items:center;padding-bottom:3mm;white-space:nowrap;overflow:hidden;">Authorized Signatory</div>
+        <div class="sig-image" style="font-family:'Brush Script MT','Apple Chancery',cursive;font-size:18pt;color:#0a1f4d;align-items:center;padding-bottom:3mm;white-space:nowrap;overflow:hidden;">${d.atpName || 'Your Signature'}</div>
         <div class="sig-line"></div>
         <div class="sig-name">${escape(d.atpName || 'Training Centre')}</div>
         <div class="sig-role">Approved Training Centre</div>
