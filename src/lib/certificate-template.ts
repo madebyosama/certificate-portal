@@ -119,18 +119,18 @@ export function buildCertificateHtml(
   .content { position: relative; height: 100%; padding: 14mm 25mm 70mm; display: flex; flex-direction: column; align-items: center; text-align: center; }
 
   /* Header */
-  .logo-block { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 3mm; }
+  .logo-block { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 3mm; margin-top: 8mm; }
   .logo-block img { height: 16mm; width: auto; }
   .org-sub { font-size: 8pt; letter-spacing: 3px; color: #6b7280; text-transform: uppercase; }
 
   /* Title */
-  .title { font-size: 28pt; letter-spacing: 8px; color: #2B317A; font-weight: 700; margin: 1mm 0 0; }
-  .title-sub { font-size: 8.5pt; letter-spacing: 4px; color: #b8860b; text-transform: uppercase; margin-top: 1mm; }
+  .title { font-size: 28pt; letter-spacing: 8px; color: #2B317A; font-weight: 700; margin-bottom: 8mm 0 0; }
+  .title-sub { font-size: 8.5pt; letter-spacing: 4px; color: #b8860b; text-transform: uppercase; margin-top: 4mm; }
   .title-underline { width: 70mm; height: 2px; background: linear-gradient(90deg, transparent, #b8860b, transparent); margin: 2mm auto 3mm; }
 
   /* Body */
   .preamble { font-size: 10.5pt; color: #374151; letter-spacing: 1px; font-style: italic; }
-  .recipient { font-family: 'Brush Script MT', 'Lucida Handwriting', 'Apple Chancery', cursive; font-size: 34pt; color: #0a1628; margin: 3mm 0 1mm; font-weight: 400; line-height: 1; }
+  .recipient { font-family: 'Brush Script MT', 'Lucida Handwriting', 'Apple Chancery', cursive; font-size: 34pt; color: #0a1628; margin: 2mm 0 1mm; font-weight: 400; line-height: 1; }
   .recipient-underline { width: 130mm; border-bottom: 1px solid #9ca3af; margin: 30px auto 3mm; }
 
   .achievement { font-size: 10pt; color: #374151; line-height: 1.5; max-width: 200mm; margin: 0 auto; }
@@ -158,7 +158,7 @@ export function buildCertificateHtml(
   .cert-id { position: absolute; bottom: 6mm; left: 0; right: 0; text-align: center; font-size: 7pt; color: #6b7280; letter-spacing: 2px; font-family: 'Courier New', monospace; }
 
   /* QR verification block — anchored bottom-left, clear of the footer */
-  .qr-verify { position: absolute; bottom: 14mm; left: 16mm; display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+  .qr-verify { position: absolute; top: 16mm; right: 16mm; display: flex; flex-direction: column; align-items: center; gap: 1mm; }
   .qr-verify .qr-box { width: 22mm; height: 22mm; background: #fff; padding: 1mm; border: 1px solid #d4dae6; border-radius: 2mm; }
   .qr-verify .qr-box svg { width: 100%; height: 100%; display: block; }
   .qr-verify .qr-cap { font-size: 6pt; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; font-family: 'Inter', system-ui, sans-serif; }
@@ -225,7 +225,7 @@ export function buildCertificateHtml(
         ${
           d.expiryDate
             ? `<div class="meta-item">
-          <div class="meta-label">Valid Until</div>
+          <div class="meta-label">Expiry Date</div>
           <div class="meta-value">${escape(fmt(d.expiryDate))}</div>
         </div>`
             : ''
