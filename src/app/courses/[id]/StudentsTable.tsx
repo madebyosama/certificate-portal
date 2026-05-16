@@ -4,41 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { buildCertificateHtml } from '@/lib/certificate-template'
+import { computeCertificateExpiry } from '@/lib/certificate-validity'
+import { buildVerifyQrSvg } from '@/lib/certificate-qr'
 import type { Candidate } from '@/lib/types'
-
-/**
- * Number of years a keyword-gated certificate stays valid for, measured
- * from its issue date.
- */
-const CERTIFICATE_VALIDITY_YEARS = 5
-
-/**
- * Certificates only carry an expiry date when the course title contains
- * the keyword "ISO" (capitalised, exact case) OR the exact word
- * "Certification" (case-sensitive). The match is a case-sensitive
- * substring test — e.g. "ISO 9001 Lead Auditor" and
- * "Project Management Certification" both qualify, but "iso" or
- * "certification" (lowercase) do not.
- *
- * When the rule matches, the expiry is the issue date plus
- * CERTIFICATE_VALIDITY_YEARS years. Otherwise it returns null and no
- * expiry is shown on the certificate.
- */
-function computeCertificateExpiry(
-  courseTitle: string,
-  issueDateIso: string
-): string | null {
-  const titleQualifies =
-    courseTitle.includes('ISO') || courseTitle.includes('Certification')
-  if (!titleQualifies) return null
-
-  const issued = new Date(issueDateIso)
-  if (isNaN(issued.getTime())) return null
-
-  const expiry = new Date(issued)
-  expiry.setFullYear(expiry.getFullYear() + CERTIFICATE_VALIDITY_YEARS)
-  return expiry.toISOString()
-}
 
 interface Course {
   id: string
@@ -198,6 +166,10 @@ export default function StudentsTable({
     const absoluteLogo = new URL(logoUrl, window.location.origin).toString()
     const issueDate = c.certificate_issued_at || new Date().toISOString()
 
+    // Generate the self-contained verification QR (points at the public
+    // verify page for this exact certificate number).
+    const qrSvg = await buildVerifyQrSvg(window.location.origin, certNo!)
+
     const html = buildCertificateHtml(
       {
         certificateNo: certNo!,
@@ -215,6 +187,7 @@ export default function StudentsTable({
         totalMarks: c.total_marks,
         status: c.status,
         logoUrl: absoluteLogo,
+        qrSvg,
       },
       { forDownload: true }
     )

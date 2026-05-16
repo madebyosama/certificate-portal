@@ -27,6 +27,14 @@ export interface CertificateData {
   totalMarks: number | null
   status: string
   logoUrl: string
+  /**
+   * Pre-rendered, self-contained QR-code SVG markup that points at the
+   * public certificate-verification page for this certificate. When
+   * present it is rendered in the certificate footer. Scanning it takes
+   * the viewer straight to the verify page, which shows only whether the
+   * certificate is valid/expired/not-found (no input required).
+   */
+  qrSvg?: string | null
 }
 
 function fmt(d: string | null): string {
@@ -149,6 +157,12 @@ export function buildCertificateHtml(
 
   .cert-id { position: absolute; bottom: 6mm; left: 0; right: 0; text-align: center; font-size: 7pt; color: #6b7280; letter-spacing: 2px; font-family: 'Courier New', monospace; }
 
+  /* QR verification block — anchored bottom-left, clear of the footer */
+  .qr-verify { position: absolute; bottom: 14mm; left: 16mm; display: flex; flex-direction: column; align-items: center; gap: 1mm; }
+  .qr-verify .qr-box { width: 22mm; height: 22mm; background: #fff; padding: 1mm; border: 1px solid #d4dae6; border-radius: 2mm; }
+  .qr-verify .qr-box svg { width: 100%; height: 100%; display: block; }
+  .qr-verify .qr-cap { font-size: 6pt; color: #6b7280; letter-spacing: 1px; text-transform: uppercase; font-family: 'Inter', system-ui, sans-serif; }
+
   @media print {
     body { background: #fff; padding: 0; }
     .sheet { box-shadow: none; }
@@ -256,6 +270,15 @@ export function buildCertificateHtml(
         <div class="sig-role">Approved Training Centre</div>
       </div>
     </div>
+
+    ${
+      d.qrSvg
+        ? `<div class="qr-verify">
+      <div class="qr-box">${d.qrSvg}</div>
+      <div class="qr-cap">Scan to verify</div>
+    </div>`
+        : ''
+    }
 
     <div class="cert-id">CERTIFICATE NO: ${escape(d.certificateNo)} &nbsp;·&nbsp; ISSUED ${escape(fmt(d.issueDate))}${
       d.expiryDate ? ` &nbsp;·&nbsp; EXPIRES ${escape(fmt(d.expiryDate))}` : ''

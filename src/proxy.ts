@@ -25,10 +25,15 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isAuthPage = path.startsWith('/login')
   const isAuthCallback = path.startsWith('/auth')
+  // Public, unauthenticated certificate verification (page + its API).
+  const isPublic =
+    path === '/verify-certificate' ||
+    path.startsWith('/verify-certificate/') ||
+    path.startsWith('/api/verify-certificate')
 
   // Only check: is the user logged in at all?
   // Admin authorization is handled inside each /admin page server-side
-  if (!user && !isAuthPage && !isAuthCallback) {
+  if (!user && !isAuthPage && !isAuthCallback && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
