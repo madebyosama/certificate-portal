@@ -23,6 +23,11 @@ interface Props {
   initialCandidates: Candidate[]
   /** Whether the course has already been activated. */
   isCourseApproved: boolean
+  /**
+   * True once the course has been paid for. When locked, no further
+   * students can be added.
+   */
+  courseLocked: boolean
 }
 
 export default function AddCandidatesForm({
@@ -30,13 +35,12 @@ export default function AddCandidatesForm({
   userId,
   initialCandidates,
   isCourseApproved,
+  courseLocked,
 }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [form, setForm] = useState<FormState>(emptyForm)
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<FormState>(emptyForm)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -51,6 +55,12 @@ export default function AddCandidatesForm({
   async function addCandidate(e: React.FormEvent) {
     e.preventDefault()
     setError(''); setSuccess('')
+    if (courseLocked) {
+      setError(
+        'This course has already been paid for and is locked. No additional students can be added.'
+      )
+      return
+    }
     if (!form.first_name || !form.last_name || !form.email) {
       setError('First name, last name, and email are required.')
       return
@@ -78,52 +88,6 @@ export default function AddCandidatesForm({
     setSuccess(`${data.first_name} ${data.last_name} added.`)
   }
 
-  function startEdit(c: Candidate) {
-    setError(''); setSuccess('')
-    setEditingId(c.id)
-    setEditForm({
-      first_name: c.first_name,
-      last_name: c.last_name,
-      email: c.email || '',
-      date_of_birth: c.date_of_birth || '',
-      country: c.country || '',
-      assessment_marks_1: c.assessment_marks_1?.toString() || '',
-      assessment_marks_2: c.assessment_marks_2?.toString() || '',
-      total_marks: c.total_marks?.toString() || '100',
-      status: c.status,
-    })
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setEditForm(emptyForm)
-  }
-
-  async function saveEdit(id: string) {
-    setError(''); setSuccess('')
-    if (!editForm.first_name || !editForm.last_name || !editForm.email) {
-      setError('First name, last name, and email are required.')
-      return
-    }
-    setBusyId(id)
-    const { data, error } = await supabase.from('candidates').update({
-      first_name: editForm.first_name,
-      last_name: editForm.last_name,
-      email: editForm.email,
-      date_of_birth: editForm.date_of_birth || null,
-      country: editForm.country || null,
-      assessment_marks_1: editForm.assessment_marks_1 ? Number(editForm.assessment_marks_1) : null,
-      assessment_marks_2: editForm.assessment_marks_2 ? Number(editForm.assessment_marks_2) : null,
-      total_marks: Number(editForm.total_marks) || 100,
-      status: editForm.status,
-    }).eq('id', id).select().single()
-    setBusyId(null)
-    if (error) { setError(error.message); return }
-    setCandidates((p) => p.map((c) => (c.id === id ? data : c)))
-    setSuccess(`${data.first_name} ${data.last_name} updated.`)
-    cancelEdit()
-  }
-
   async function deleteCandidate(c: Candidate) {
     if (c.paid) {
       setError("Cannot delete a student that has already been paid for.")
@@ -140,6 +104,18 @@ export default function AddCandidatesForm({
   }
 
   async function proceed() {
+    if (courseLocked) {
+      setError(
+        'This course has already been paid for and is locked.'
+      )
+      return
+    }
+    if (candidates.length === 0) {
+      setError(
+        'A course must have at least one student before it can be registered. Add a student above to continue.'
+      )
+      return
+    }
     if (unpaidCount === 0) {
       setError('No new (unpaid) students to bill for.')
       return
@@ -216,21 +192,36 @@ export default function AddCandidatesForm({
 
   return (
     <>
-      {/* Add new student */}
-      <div className="card" style={{ marginBottom: 18 }}>
-        <div className="card-header">Add Student</div>
-        <div className="card-body">
-          {error && <div className="alert alert-error">{error}</div>}
-          {success && <div className="alert alert-success">{success}</div>}
+      {/* Add new student — hidden once the course is paid for / locked */}
+      {courseLocked ? (
+        <>
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: 18 }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="alert alert-success" style={{ marginBottom: 18 }}>
+              {success}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-header">Add Student</div>
+          <div className="card-body">
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
 
-          <form onSubmit={addCandidate}>
-            {renderFormFields(form, setForm)}
-            <button type="submit" className="btn btn-primary" disabled={addLoading}>
-              {addLoading ? <><span className="spinner" /> Adding...</> : '+ Add Student'}
-            </button>
-          </form>
+            <form onSubmit={addCandidate}>
+              {renderFormFields(form, setForm)}
+              <button type="submit" className="btn btn-primary" disabled={addLoading}>
+                {addLoading ? <><span className="spinner" /> Adding...</> : '+ Add Student'}
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Students list */}
       <div className="card">
@@ -267,31 +258,6 @@ export default function AddCandidatesForm({
               {candidates.length === 0 ? (
                 <tr><td colSpan={8} className="empty-state">No students added yet. Add one above.</td></tr>
               ) : candidates.map((c, i) => {
-                const isEditing = editingId === c.id
-                if (isEditing) {
-                  return (
-                    <tr key={c.id}>
-                      <td colSpan={8} style={{ padding: 14, background: '#f9fafb' }}>
-                        <div style={{ fontWeight: 600, marginBottom: 10 }}>
-                          Editing {c.first_name} {c.last_name}
-                        </div>
-                        {renderFormFields(editForm, setEditForm)}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => saveEdit(c.id)}
-                            disabled={busyId === c.id}
-                          >
-                            {busyId === c.id ? <><span className="spinner" /> Saving...</> : 'Save'}
-                          </button>
-                          <button className="btn btn-outline btn-sm" onClick={cancelEdit} disabled={busyId === c.id}>
-                            Cancel
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                }
                 return (
                   <tr key={c.id}>
                     <td>{i + 1}</td>
@@ -309,13 +275,6 @@ export default function AddCandidatesForm({
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => startEdit(c)}
-                          disabled={busyId === c.id}
-                        >
-                          Edit
-                        </button>
                         {!c.paid && (
                           <button
                             className="btn btn-outline btn-sm"

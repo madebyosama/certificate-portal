@@ -65,7 +65,11 @@ export default async function CourseDetailPage({
   const totalStudents = candidates?.length ?? 0
   const paidStudents = (candidates ?? []).filter((c: any) => c.paid).length
   const unpaidStudents = totalStudents - paidStudents
-  const isApproved = course.status === 'approved'
+  // A course is "registered" (locked) once it has been paid for — i.e.
+  // any student is paid, or the course has been approved. No more
+  // students may be added to a registered course.
+  const courseLocked =
+    paidStudents > 0 || course.status === 'approved'
 
   return (
     <AppLayout userName={displayName}>
@@ -81,25 +85,20 @@ export default async function CourseDetailPage({
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link
-            href={`/courses/${id}/candidates`}
-            className='btn btn-primary btn-sm'
-          >
-            + Add Students
-          </Link>
-          {!isApproved ? (
+          {!courseLocked && (
             <Link
-              href={`/courses/${id}/purchase`}
-              className='btn btn-success btn-sm'
+              href={`/courses/${id}/candidates`}
+              className='btn btn-primary btn-sm'
             >
-              Purchase Course
+              + Add Students
             </Link>
-          ) : unpaidStudents > 0 ? (
+          )}
+          {unpaidStudents > 0 ? (
             <Link
               href={`/courses/${id}/purchase`}
               className='btn btn-success btn-sm'
             >
-              Pay for {unpaidStudents} New Student
+              Pay for {unpaidStudents} Student
               {unpaidStudents !== 1 ? 's' : ''}
             </Link>
           ) : null}

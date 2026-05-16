@@ -15,6 +15,12 @@ export interface CertificateData {
   startDate: string | null
   endDate: string | null
   issueDate: string
+  /**
+   * Expiry/valid-until date. Only populated for courses whose title
+   * contains the keyword "ISO" (capitalised) or "Certification" (exact
+   * case). When null, no expiry is shown on the certificate.
+   */
+  expiryDate: string | null
   atpName: string | null
   atpNo: string | null
   trainerName: string | null
@@ -62,7 +68,20 @@ const CEO_SIGNATURE_SVG = `
 
 `
 
-export function buildCertificateHtml(d: CertificateData): string {
+export interface BuildCertificateOptions {
+  /**
+   * When true, the document is built for off-screen rendering and
+   * direct PDF download: the floating print bar and the auto-print
+   * script are omitted so the certificate can be captured cleanly.
+   */
+  forDownload?: boolean
+}
+
+export function buildCertificateHtml(
+  d: CertificateData,
+  options: BuildCertificateOptions = {}
+): string {
+  const { forDownload = false } = options
   const title = `Certificate ${d.certificateNo}`
 
   // Use a dedicated crown URL for the watermark (passed separately or fall back to logo)
@@ -104,7 +123,7 @@ export function buildCertificateHtml(d: CertificateData): string {
   /* Body */
   .preamble { font-size: 10.5pt; color: #374151; letter-spacing: 1px; font-style: italic; }
   .recipient { font-family: 'Brush Script MT', 'Lucida Handwriting', 'Apple Chancery', cursive; font-size: 34pt; color: #0a1628; margin: 3mm 0 1mm; font-weight: 400; line-height: 1; }
-  .recipient-underline { width: 130mm; border-bottom: 1px solid #9ca3af; margin: 0 auto 3mm; }
+  .recipient-underline { width: 130mm; border-bottom: 1px solid #9ca3af; margin: 30px auto 3mm; }
 
   .achievement { font-size: 10pt; color: #374151; line-height: 1.5; max-width: 200mm; margin: 0 auto; }
   .course-title { font-size: 13pt; color: #2B317A; font-weight: 700; margin: 2mm 0; font-style: italic; }
@@ -143,11 +162,15 @@ export function buildCertificateHtml(d: CertificateData): string {
 </style>
 </head>
 <body>
-  <div class="print-bar no-print">
+  ${
+    forDownload
+      ? ''
+      : `<div class="print-bar no-print">
     <span>📄 Certificate ready — save as PDF from the print dialog</span>
     <button onclick="window.print()">Print / Save as PDF</button>
     <span class="hint">(Choose “Save as PDF” in the destination)</span>
-  </div>
+  </div>`
+  }
 
   <div class="sheet">
     <div class="border-outer"></div>
@@ -185,6 +208,14 @@ export function buildCertificateHtml(d: CertificateData): string {
           <div class="meta-label">Completion Date</div>
           <div class="meta-value">${escape(fmt(d.endDate))}</div>
         </div>
+        ${
+          d.expiryDate
+            ? `<div class="meta-item">
+          <div class="meta-label">Valid Until</div>
+          <div class="meta-value">${escape(fmt(d.expiryDate))}</div>
+        </div>`
+            : ''
+        }
         <div class="meta-item">
           <div class="meta-label">Result</div>
           <div class="meta-value" style="text-transform:uppercase;">${escape(d.status)}</div>
@@ -198,7 +229,7 @@ export function buildCertificateHtml(d: CertificateData): string {
           <div class="meta-value">${escape(d.atpName || '—')}</div>
         </div>
         <div class="meta-item">
-          <div class="meta-label">Centre ID</div>
+          <div class="meta-label">ATP ID</div>
           <div class="meta-value">${escape(d.atpNo || '—')}</div>
         </div>
       </div>
@@ -226,15 +257,21 @@ export function buildCertificateHtml(d: CertificateData): string {
       </div>
     </div>
 
-    <div class="cert-id">CERTIFICATE NO: ${escape(d.certificateNo)} &nbsp;·&nbsp; ISSUED ${escape(fmt(d.issueDate))}</div>
+    <div class="cert-id">CERTIFICATE NO: ${escape(d.certificateNo)} &nbsp;·&nbsp; ISSUED ${escape(fmt(d.issueDate))}${
+      d.expiryDate ? ` &nbsp;·&nbsp; EXPIRES ${escape(fmt(d.expiryDate))}` : ''
+    }</div>
   </div>
 
-  <script>
+  ${
+    forDownload
+      ? ''
+      : `<script>
     // Give the browser a beat to render fonts/images, then open the print dialog.
     window.addEventListener('load', function () {
       setTimeout(function () { window.print(); }, 400);
     });
-  </script>
+  </script>`
+  }
 </body>
 </html>`
 }

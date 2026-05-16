@@ -26,9 +26,6 @@ export default async function CreateCoursePage() {
           <strong style={{ color: '#111827' }}>Course Details</strong>
           <span>→</span>
           <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>2</span>
-          Purchase Course
-          <span>→</span>
-          <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>3</span>
           Add Students & Pay
         </div>
       </div>

@@ -1,10 +1,44 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { buildCertificateHtml } from '@/lib/certificate-template'
 import type { Candidate } from '@/lib/types'
+
+/**
+ * Number of years a keyword-gated certificate stays valid for, measured
+ * from its issue date.
+ */
+const CERTIFICATE_VALIDITY_YEARS = 5
+
+/**
+ * Certificates only carry an expiry date when the course title contains
+ * the keyword "ISO" (capitalised, exact case) OR the exact word
+ * "Certification" (case-sensitive). The match is a case-sensitive
+ * substring test — e.g. "ISO 9001 Lead Auditor" and
+ * "Project Management Certification" both qualify, but "iso" or
+ * "certification" (lowercase) do not.
+ *
+ * When the rule matches, the expiry is the issue date plus
+ * CERTIFICATE_VALIDITY_YEARS years. Otherwise it returns null and no
+ * expiry is shown on the certificate.
+ */
+function computeCertificateExpiry(
+  courseTitle: string,
+  issueDateIso: string
+): string | null {
+  const titleQualifies =
+    courseTitle.includes('ISO') || courseTitle.includes('Certification')
+  if (!titleQualifies) return null
+
+  const issued = new Date(issueDateIso)
+  if (isNaN(issued.getTime())) return null
+
+  const expiry = new Date(issued)
+  expiry.setFullYear(expiry.getFullYear() + CERTIFICATE_VALIDITY_YEARS)
+  return expiry.toISOString()
+}
 
 interface Course {
   id: string
@@ -55,8 +89,61 @@ export default function StudentsTable({
 
   // Hard-copy order modal state
   const [orderFor, setOrderFor] = useState<Candidate | null>(null)
-  // Edit candidate modal state
-  const [editFor, setEditFor] = useState<Candidate | null>(null)
+
+  /**
+   * Issue (or return the existing) certificate number for a candidate.
+   * The number is allocated atomically server-side via the
+   * `issue_certificate_no` RPC and is locked once assigned, so calling
+   * this more than once for the same candidate always returns the same
+   * number. Returns the certificate number, or null on failure.
+   */
+  const issueCertNo = useCallback(
+    async (c: Candidate): Promise<string | null> => {
+      if (c.certificate_no) return c.certificate_no
+      const { data, error: rpcErr } = await supabase.rpc(
+        'issue_certificate_no',
+        { p_candidate_id: c.id }
+      )
+      if (rpcErr || !data) return null
+      const certNo = data as string
+      const issuedAt = new Date().toISOString()
+      setCandidates((prev) =>
+        prev.map((x) =>
+          x.id === c.id
+            ? {
+                ...x,
+                certificate_no: certNo,
+                certificate_issued_at:
+                  x.certificate_issued_at || issuedAt,
+              }
+            : x
+        )
+      )
+      return certNo
+    },
+    [supabase]
+  )
+
+  /**
+   * Auto-issue certificate numbers as soon as a student is eligible
+   * (payment made + passed) — the number no longer waits for the user to
+   * click "Download". This runs once per eligible candidate; the guard
+   * ref prevents duplicate RPC calls across re-renders. Server-side the
+   * number is locked, so even a duplicate call is harmless.
+   */
+  const autoIssuedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const pending = candidates.filter(
+      (c) =>
+        c.paid &&
+        c.status === 'pass' &&
+        !c.certificate_no &&
+        !autoIssuedRef.current.has(c.id)
+    )
+    if (pending.length === 0) return
+    pending.forEach((c) => autoIssuedRef.current.add(c.id))
+    void Promise.all(pending.map((c) => issueCertNo(c)))
+  }, [candidates, issueCertNo])
 
   const courseEligible = course && true // certificate available regardless; could gate on course.status === 'approved'
 
@@ -77,9 +164,9 @@ export default function StudentsTable({
   }, [candidates, search])
 
   /**
-   * Issue (or fetch existing) certificate number, then open a new
-   * window with the rendered certificate. The window auto-triggers
-   * window.print() so the user can "Save as PDF".
+   * Issue (or fetch existing) certificate number, render the certificate
+   * off-screen, and directly download it as a PDF file — no new tab and
+   * no browser print dialog.
    */
   async function handleDownload(c: Candidate) {
     if (!c.paid) {
@@ -99,63 +186,117 @@ export default function StudentsTable({
 
     let certNo = c.certificate_no
     if (!certNo) {
-      const { data, error: rpcErr } = await supabase.rpc(
-        'issue_certificate_no',
-        { p_candidate_id: c.id }
-      )
-      if (rpcErr || !data) {
-        setError(rpcErr?.message || 'Failed to issue certificate number.')
+      certNo = await issueCertNo(c)
+      if (!certNo) {
+        setError('Failed to issue certificate number.')
         setBusyId(null)
         return
       }
-      certNo = data as string
-      setCandidates((prev) =>
-        prev.map((x) =>
-          x.id === c.id
-            ? {
-                ...x,
-                certificate_no: certNo,
-                certificate_issued_at: new Date().toISOString(),
-              }
-            : x
-        )
-      )
     }
 
-    // Open new window first (must be done in the click handler to avoid popup blocking)
-    const win = window.open('', '_blank')
-    if (!win) {
-      setError(
-        'Could not open the certificate window. Please allow pop-ups for this site and try again.'
-      )
-      setBusyId(null)
-      return
-    }
-
-    // Build absolute logo URL so it works inside the popup
+    // Build absolute logo URL so it resolves while rendering off-screen
     const absoluteLogo = new URL(logoUrl, window.location.origin).toString()
+    const issueDate = c.certificate_issued_at || new Date().toISOString()
 
-    const html = buildCertificateHtml({
-      certificateNo: certNo!,
-      candidateName: `${c.first_name} ${c.last_name}`,
-      courseTitle: course.course_title,
-      startDate: course.start_date,
-      endDate: course.end_date,
-      issueDate: c.certificate_issued_at || new Date().toISOString(),
-      atpName: profile.atp_name,
-      atpNo: profile.atp_no,
-      trainerName: course.trainer
-        ? `${course.trainer.first_name} ${course.trainer.last_name}`
-        : null,
-      totalMarks: c.total_marks,
-      status: c.status,
-      logoUrl: absoluteLogo,
-    })
-    win.document.open()
-    win.document.write(html)
-    win.document.close()
+    const html = buildCertificateHtml(
+      {
+        certificateNo: certNo!,
+        candidateName: `${c.first_name} ${c.last_name}`,
+        courseTitle: course.course_title,
+        startDate: course.start_date,
+        endDate: course.end_date,
+        issueDate,
+        expiryDate: computeCertificateExpiry(course.course_title, issueDate),
+        atpName: profile.atp_name,
+        atpNo: profile.atp_no,
+        trainerName: course.trainer
+          ? `${course.trainer.first_name} ${course.trainer.last_name}`
+          : null,
+        totalMarks: c.total_marks,
+        status: c.status,
+        logoUrl: absoluteLogo,
+      },
+      { forDownload: true }
+    )
 
-    setBusyId(null)
+    // Render the certificate inside a hidden, off-screen iframe so we can
+    // rasterise it without ever showing a new tab or print dialog.
+    const iframe = document.createElement('iframe')
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.style.position = 'fixed'
+    iframe.style.left = '-10000px'
+    iframe.style.top = '0'
+    // A4 landscape at ~96dpi (297mm x 210mm) gives the renderer a stable box.
+    iframe.style.width = '1123px'
+    iframe.style.height = '794px'
+    iframe.style.border = '0'
+    document.body.appendChild(iframe)
+
+    const cleanup = () => {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe)
+    }
+
+    try {
+      const doc = iframe.contentDocument
+      if (!doc) throw new Error('Could not access the render frame.')
+      doc.open()
+      doc.write(html)
+      doc.close()
+
+      // Wait for the iframe document (incl. logo image) to finish loading.
+      await new Promise<void>((resolve) => {
+        const done = () => resolve()
+        if (doc.readyState === 'complete') {
+          // Give images/fonts a brief beat to settle.
+          setTimeout(done, 350)
+        } else {
+          iframe.addEventListener('load', () => setTimeout(done, 350), {
+            once: true,
+          })
+        }
+      })
+
+      const sheet = doc.querySelector('.sheet') as HTMLElement | null
+      if (!sheet) throw new Error('Certificate failed to render.')
+
+      // Lazy-load the heavy PDF libraries only when actually downloading.
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+
+      const canvas = await html2canvas(sheet, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: sheet.scrollWidth,
+        windowHeight: sheet.scrollHeight,
+      })
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH)
+
+      const safeName = `${c.first_name}_${c.last_name}`
+        .replace(/[^a-z0-9_-]+/gi, '_')
+        .replace(/_+/g, '_')
+      pdf.save(`Certificate_${certNo}_${safeName}.pdf`)
+    } catch (err: any) {
+      setError(
+        err?.message
+          ? `Could not generate the certificate PDF: ${err.message}`
+          : 'Could not generate the certificate PDF. Please try again.'
+      )
+    } finally {
+      cleanup()
+      setBusyId(null)
+    }
   }
 
   function openOrder(c: Candidate) {
@@ -173,11 +314,6 @@ export default function StudentsTable({
     }
     setError('')
     setOrderFor(c)
-  }
-
-  function openEdit(c: Candidate) {
-    setError('')
-    setEditFor(c)
   }
 
   async function handleDelete(c: Candidate) {
@@ -440,26 +576,6 @@ export default function StudentsTable({
                           </svg>
                         </button>
 
-                        {/* Edit — always available */}
-                        <button
-                          type='button'
-                          title='Edit student details'
-                          onClick={() => openEdit(c)}
-                          disabled={busyId === c.id}
-                          style={{
-                            padding: '4px 10px',
-                            background: '#f3f4f6',
-                            border: '1px solid #d1d5db',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            color: '#374151',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Edit
-                        </button>
-
                         {/* Delete — only allowed while still unpaid */}
                         {!c.paid && (
                           <button
@@ -501,19 +617,6 @@ export default function StudentsTable({
           onPlaced={() => {
             setOrderFor(null)
             router.refresh()
-          }}
-        />
-      )}
-
-      {editFor && (
-        <EditCandidateModal
-          candidate={editFor}
-          onClose={() => setEditFor(null)}
-          onSaved={(updated) => {
-            setCandidates((prev) =>
-              prev.map((x) => (x.id === updated.id ? updated : x))
-            )
-            setEditFor(null)
           }}
         />
       )}
@@ -978,303 +1081,6 @@ function OrderHardCopyModal({
                 </>
               ) : (
                 <>Confirm Order · ${total.toFixed(2)}</>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Edit candidate modal                                               */
-/* ------------------------------------------------------------------ */
-
-const COUNTRIES = [
-  'United Kingdom',
-  'United States',
-  'United Arab Emirates',
-  'Saudi Arabia',
-  'Qatar',
-  'Kuwait',
-  'Bahrain',
-  'Oman',
-  'Pakistan',
-  'India',
-  'Bangladesh',
-  'Egypt',
-  'Jordan',
-  'Lebanon',
-  'Philippines',
-  'Nigeria',
-  'South Africa',
-  'Canada',
-  'Australia',
-  'Germany',
-  'France',
-]
-
-function EditCandidateModal({
-  candidate,
-  onClose,
-  onSaved,
-}: {
-  candidate: Candidate
-  onClose: () => void
-  onSaved: (c: Candidate) => void
-}) {
-  const supabase = createClient()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const [form, setForm] = useState({
-    first_name: candidate.first_name || '',
-    last_name: candidate.last_name || '',
-    email: candidate.email || '',
-    date_of_birth: candidate.date_of_birth || '',
-    country: candidate.country || '',
-    assessment_marks_1: candidate.assessment_marks_1?.toString() ?? '',
-    assessment_marks_2: candidate.assessment_marks_2?.toString() ?? '',
-    total_marks: candidate.total_marks?.toString() ?? '100',
-    status: candidate.status || 'pending',
-  })
-
-  function set<K extends keyof typeof form>(k: K, v: string) {
-    setForm((f) => ({ ...f, [k]: v }))
-  }
-
-  async function save() {
-    setError('')
-    if (!form.first_name || !form.last_name || !form.email) {
-      setError('First name, last name, and email are required.')
-      return
-    }
-    setLoading(true)
-    const { data, error: updErr } = await supabase
-      .from('candidates')
-      .update({
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        date_of_birth: form.date_of_birth || null,
-        country: form.country || null,
-        assessment_marks_1: form.assessment_marks_1
-          ? Number(form.assessment_marks_1)
-          : null,
-        assessment_marks_2: form.assessment_marks_2
-          ? Number(form.assessment_marks_2)
-          : null,
-        total_marks: Number(form.total_marks) || 100,
-        status: form.status,
-      })
-      .eq('id', candidate.id)
-      .select()
-      .single()
-    setLoading(false)
-    if (updErr) {
-      setError(updErr.message)
-      return
-    }
-    onSaved(data as Candidate)
-  }
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(10,22,40,0.55)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          maxWidth: 720,
-          width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        }}
-      >
-        <div
-          style={{
-            padding: '14px 20px',
-            background: '#0a1628',
-            color: '#fff',
-            borderRadius: '12px 12px 0 0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '1rem', fontWeight: 700 }}>
-              Edit Student
-            </div>
-            <div style={{ fontSize: '0.775rem', opacity: 0.7, marginTop: 2 }}>
-              {candidate.first_name} {candidate.last_name}
-              {candidate.paid && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: '0.7rem',
-                    color: '#86efac',
-                  }}
-                >
-                  · paid (cannot be deleted)
-                </span>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              color: '#fff',
-              border: 'none',
-              fontSize: '1.4rem',
-              cursor: 'pointer',
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: 20 }}>
-          {error && (
-            <div className='alert alert-error' style={{ marginBottom: 12 }}>
-              {error}
-            </div>
-          )}
-
-          <div className='form-grid-3' style={{ marginBottom: 14 }}>
-            <div className='form-group'>
-              <label className='form-label'>
-                First Name <span className='required'>*</span>
-              </label>
-              <input
-                className='form-input'
-                value={form.first_name}
-                onChange={(e) => set('first_name', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>
-                Last Name <span className='required'>*</span>
-              </label>
-              <input
-                className='form-input'
-                value={form.last_name}
-                onChange={(e) => set('last_name', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>
-                Email <span className='required'>*</span>
-              </label>
-              <input
-                type='email'
-                className='form-input'
-                value={form.email}
-                onChange={(e) => set('email', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Date of Birth</label>
-              <input
-                type='date'
-                className='form-input'
-                value={form.date_of_birth}
-                onChange={(e) => set('date_of_birth', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Country</label>
-              <select
-                className='form-select'
-                value={form.country}
-                onChange={(e) => set('country', e.target.value)}
-              >
-                <option value=''>— Select Country —</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Status</label>
-              <select
-                className='form-select'
-                value={form.status}
-                onChange={(e) => set('status', e.target.value)}
-              >
-                <option value='pass'>Pass</option>
-                <option value='fail'>Fail</option>
-                <option value='pending'>Pending</option>
-              </select>
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Assessment 1</label>
-              <input
-                type='number'
-                className='form-input'
-                value={form.assessment_marks_1}
-                onChange={(e) => set('assessment_marks_1', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Assessment 2</label>
-              <input
-                type='number'
-                className='form-input'
-                value={form.assessment_marks_2}
-                onChange={(e) => set('assessment_marks_2', e.target.value)}
-              />
-            </div>
-            <div className='form-group'>
-              <label className='form-label'>Total Marks</label>
-              <input
-                type='number'
-                className='form-input'
-                value={form.total_marks}
-                onChange={(e) => set('total_marks', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button
-              type='button'
-              className='btn btn-outline'
-              onClick={onClose}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type='button'
-              className='btn btn-success'
-              onClick={save}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className='spinner' /> Saving…
-                </>
-              ) : (
-                'Save Changes'
               )}
             </button>
           </div>

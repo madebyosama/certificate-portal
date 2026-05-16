@@ -13,7 +13,6 @@ interface Props {
   /** Students that haven't been paid for yet — these drive the bill. */
   unpaidStudents: number
   validityDays: number
-  purchaseFee: number
   /** True the first time the course is being activated. */
   isFirstPurchase: boolean
   totalPrice: number
@@ -29,7 +28,6 @@ export default function PurchaseForm({
   totalStudents,
   unpaidStudents,
   validityDays,
-  purchaseFee,
   isFirstPurchase,
   totalPrice,
   depositBalance,
@@ -42,11 +40,17 @@ export default function PurchaseForm({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // No students at all -> the course cannot be registered/paid for.
+  const noStudents = totalStudents === 0
   // Subsequent purchases with no unpaid students -> nothing to bill.
-  const nothingToPay = !isFirstPurchase && unpaidStudents === 0
+  const nothingToPay = noStudents || (!isFirstPurchase && unpaidStudents === 0)
 
   async function handlePay() {
     setError(''); setSuccess('')
+    if (noStudents) {
+      setError('A course must have at least one student before it can be registered and paid for.')
+      return
+    }
     if (nothingToPay) {
       setError('There are no unpaid students to charge for.')
       return
@@ -83,9 +87,7 @@ export default function PurchaseForm({
         atp_id: userId,
         type: 'debit',
         amount: totalPrice,
-        description: isFirstPurchase
-          ? `Course purchase: ${courseName}`
-          : `Additional students (${unpaidStudents}): ${courseName}`,
+        description: `Student fee (${unpaidStudents}): ${courseName}`,
         reference: invoiceNumber,
         balance_after: newBal,
       })
@@ -108,7 +110,7 @@ export default function PurchaseForm({
     setLoading(false)
     setSuccess(
       isFirstPurchase
-        ? 'Payment successful! Course is now active — you can add students next.'
+        ? 'Payment successful! The course is now registered and active — students are eligible for certificates.'
         : 'Payment successful! The new students are now eligible for certificates.'
     )
     setTimeout(() => router.push(`/courses/${courseId}`), 1500)
@@ -126,13 +128,6 @@ export default function PurchaseForm({
 
         <div className="purchase-label">Validity</div>
         <div className="purchase-value">{validityDays} day{validityDays !== 1 ? 's' : ''}</div>
-
-        {isFirstPurchase && purchaseFee > 0 && (
-          <>
-            <div className="purchase-label">Course Purchase Fee</div>
-            <div className="purchase-value">${purchaseFee.toFixed(2)}</div>
-          </>
-        )}
 
         <div className="purchase-label">Students on Course</div>
         <div className="purchase-value">{totalStudents}</div>
@@ -219,9 +214,7 @@ export default function PurchaseForm({
         >
           {loading
             ? <><span className="spinner" /> Processing...</>
-            : isFirstPurchase
-              ? `Confirm Purchase · $${totalPrice.toFixed(2)}`
-              : `Pay for ${unpaidStudents} New Student${unpaidStudents !== 1 ? 's' : ''} · $${totalPrice.toFixed(2)}`}
+            : `Pay for ${unpaidStudents} Student${unpaidStudents !== 1 ? 's' : ''} · $${totalPrice.toFixed(2)}`}
         </button>
         {isFirstPurchase && (
           <button

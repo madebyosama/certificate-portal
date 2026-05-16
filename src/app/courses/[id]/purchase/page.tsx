@@ -27,17 +27,15 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
   const total = totalStudents ?? 0
   const unpaid = unpaidStudents ?? 0
   const coursePrice = course.course_type?.price ?? 7
-  const purchaseFee = course.course_type?.purchase_fee ?? 0
 
-  // The course's one-time purchase fee is paid the first time the course is
-  // activated. After that, only per-student fees are billed for the unpaid
-  // candidates that have since been added.
+  // The course itself has NO separate purchase fee. Payment is for the
+  // students only — the per-student fee for any candidates that have not
+  // been paid for yet.
   const isFirstPurchase = course.status !== 'approved'
-  const totalPrice =
-    (isFirstPurchase ? purchaseFee : 0) + coursePrice * unpaid
+  const totalPrice = coursePrice * unpaid
 
   const depositBalance = profile?.deposit_balance ?? 0
-  const stepLabel = isFirstPurchase ? 'Purchase Course' : 'Pay for New Students'
+  const stepLabel = isFirstPurchase ? 'Pay for Students' : 'Pay for New Students'
 
   return (
     <AppLayout userName={displayName}>
@@ -48,17 +46,22 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {isFirstPurchase ? (
+      {total === 0 ? (
+        <div className="alert alert-error" style={{ marginBottom: 16 }}>
+          This course has no students yet. A course must have at least one
+          student before it can be registered and paid for.{' '}
+          <a href={`/courses/${id}/candidates`} style={{ color: '#1976d2', fontWeight: 600 }}>
+            Add a student first →
+          </a>
+        </div>
+      ) : isFirstPurchase ? (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.825rem', color: '#6b7280' }}>
             <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>1</span>
             Course Details
             <span>→</span>
             <span style={{ background: '#1976d2', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>2</span>
-            <strong style={{ color: '#111827' }}>Purchase Course</strong>
-            <span>→</span>
-            <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>3</span>
-            Add Students &amp; Pay
+            <strong style={{ color: '#111827' }}>Add Students &amp; Pay</strong>
           </div>
         </div>
       ) : (
@@ -79,7 +82,6 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
             totalStudents={total}
             unpaidStudents={unpaid}
             validityDays={course.course_type?.validity_days ?? 1}
-            purchaseFee={purchaseFee}
             isFirstPurchase={isFirstPurchase}
             totalPrice={totalPrice}
             depositBalance={depositBalance}

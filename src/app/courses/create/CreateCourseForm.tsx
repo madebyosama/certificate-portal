@@ -21,12 +21,33 @@ export default function CreateCourseForm({
     course_type_id: '',
     trainer_id: '',
     start_date: '',
-    end_date: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const selected = courseTypes.find((c) => c.id === form.course_type_id)
+
+  /**
+   * End date is no longer entered by the ATP. It is derived from the
+   * course's start date plus the validity/duration (in days) configured
+   * by the admin on the course type.
+   */
+  function computeEndDate(
+    startDate: string,
+    validityDays: number | undefined
+  ): string | null {
+    if (!startDate || !validityDays || validityDays < 1) return null
+    const d = new Date(startDate)
+    if (isNaN(d.getTime())) return null
+    d.setDate(d.getDate() + validityDays)
+    // Return as YYYY-MM-DD (date-only column)
+    return d.toISOString().slice(0, 10)
+  }
+
+  const computedEndDate = computeEndDate(
+    form.start_date,
+    selected?.validity_days
+  )
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,7 +65,8 @@ export default function CreateCourseForm({
         trainer_id: form.trainer_id,
         course_title: selected?.title ?? '',
         start_date: form.start_date,
-        end_date: form.end_date || null,
+        // Derived from start date + admin-configured validity/duration.
+        end_date: computedEndDate,
         reference_number: '',
       })
       .select()
@@ -54,8 +76,10 @@ export default function CreateCourseForm({
       setError(error.message)
       return
     }
-    // New flow: pay for the course (purchase fee) first, then add students.
-    router.push(`/courses/${data.id}/purchase`)
+    // Purchase-course step removed: a course has no separate purchase fee.
+    // Go straight to adding students — payment is per-student only and a
+    // course must have at least one student before it can be paid for.
+    router.push(`/courses/${data.id}/candidates`)
   }
 
   return (
@@ -68,6 +92,12 @@ export default function CreateCourseForm({
           student · {selected.validity_days} day validity
         </div>
       )}
+
+      <div className='alert alert-info' style={{ marginBottom: 16 }}>
+        After saving these details you&apos;ll add students. A course must have
+        at least one student before its registration can be completed and paid
+        for — payment is charged per student.
+      </div>
 
       <div className='form-grid' style={{ marginBottom: 16 }}>
         <div className='form-group'>
@@ -140,13 +170,26 @@ export default function CreateCourseForm({
         <div className='form-group'>
           <label className='form-label'>End Date</label>
           <input
-            type='date'
+            type='text'
             className='form-input'
-            value={form.end_date}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, end_date: e.target.value }))
+            value={
+              computedEndDate
+                ? new Date(computedEndDate).toLocaleDateString()
+                : '—'
             }
+            readOnly
+            disabled
+            style={{ background: '#f3f4f6', color: '#6b7280' }}
           />
+          <span
+            style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 4 }}
+          >
+            {selected
+              ? `Auto-set from start date + ${selected.validity_days} day${
+                  selected.validity_days !== 1 ? 's' : ''
+                } course validity.`
+              : 'Select a course and start date — the end date is set automatically.'}
+          </span>
         </div>
       </div>
 
@@ -157,7 +200,7 @@ export default function CreateCourseForm({
               <span className='spinner' /> Saving...
             </>
           ) : (
-            'Next: Purchase Course →'
+            'Next: Add Students →'
           )}
         </button>
         <button

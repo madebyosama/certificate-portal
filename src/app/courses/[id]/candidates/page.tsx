@@ -24,7 +24,11 @@ export default async function CandidatesPage({ params }: { params: Promise<{ id:
 
   const displayName = profile?.atp_name || profile?.full_name || user.email || 'User'
   const isCourseApproved = course.status === 'approved'
-  const unpaidCount = (candidates ?? []).filter((c: any) => !c.paid).length
+  // Once any student on the course has been paid for, the course is
+  // considered registered/paid and is locked — no further students may
+  // be added.
+  const hasPaidStudents = (candidates ?? []).some((c: any) => c.paid)
+  const courseLocked = hasPaidStudents || isCourseApproved
 
   return (
     <AppLayout userName={displayName}>
@@ -39,34 +43,29 @@ export default async function CandidatesPage({ params }: { params: Promise<{ id:
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.825rem', color: '#6b7280' }}>
-          <span style={{ background: '#e5e7eb', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>1</span>
+          <span style={{ background: isCourseApproved ? '#16a34a' : '#e5e7eb', color: isCourseApproved ? '#fff' : '#111827', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>{isCourseApproved ? '✓' : '1'}</span>
           Course Details
           <span>→</span>
-          <span style={{ background: isCourseApproved ? '#16a34a' : '#e5e7eb', color: isCourseApproved ? '#fff' : '#111827', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>{isCourseApproved ? '✓' : '2'}</span>
-          Purchase Course
-          <span>→</span>
-          <span style={{ background: '#1976d2', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>3</span>
+          <span style={{ background: '#1976d2', color: '#fff', borderRadius: '50%', width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>2</span>
           <strong style={{ color: '#111827' }}>Add Students &amp; Pay</strong>
         </div>
       </div>
 
-      {course.course_type && (
-        <div className="alert alert-info" style={{ marginBottom: 16 }}>
-          <strong>{course.course_type.title}</strong> — ${course.course_type.price.toFixed(2)} per student.
-          {isCourseApproved ? (
-            unpaidCount > 0 ? (
-              <> You have <strong>{unpaidCount}</strong> unpaid student{unpaidCount !== 1 ? 's' : ''} — total to pay:{' '}
-                <strong>${(course.course_type.price * unpaidCount).toFixed(2)}</strong>. Already-paid students will not be re-billed.
-              </>
-            ) : (
-              <> All current students have been paid for. Add more below — you&apos;ll only be charged for the newly-added ones.</>
-            )
-          ) : (
-            (candidates?.length ?? 0) > 0 && (
-              <> Current total: <strong>${(course.course_type.price * (candidates?.length ?? 0)).toFixed(2)}</strong> for {candidates?.length} student{candidates?.length !== 1 ? 's' : ''}</>
-            )
-          )}
+      {courseLocked ? (
+        <div className="alert alert-warning" style={{ marginBottom: 16 }}>
+          This course has already been paid for and is now locked. No
+          additional students can be added. The current students remain
+          eligible for certificates.
         </div>
+      ) : (
+        course.course_type && (
+          <div className="alert alert-info" style={{ marginBottom: 16 }}>
+            <strong>{course.course_type.title}</strong> — ${course.course_type.price.toFixed(2)} per student.
+            {(candidates?.length ?? 0) > 0 && (
+              <> Current total: <strong>${(course.course_type.price * (candidates?.length ?? 0)).toFixed(2)}</strong> for {candidates?.length} student{candidates?.length !== 1 ? 's' : ''}</>
+            )}
+          </div>
+        )
       )}
 
       <AddCandidatesForm
@@ -74,6 +73,7 @@ export default async function CandidatesPage({ params }: { params: Promise<{ id:
         userId={user.id}
         initialCandidates={candidates ?? []}
         isCourseApproved={isCourseApproved}
+        courseLocked={courseLocked}
       />
     </AppLayout>
   )
