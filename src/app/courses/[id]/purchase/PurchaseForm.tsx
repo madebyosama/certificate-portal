@@ -12,7 +12,7 @@ interface Props {
   totalStudents: number
   /** Students that haven't been paid for yet — these drive the bill. */
   unpaidStudents: number
-  validityDays: number
+  durationDays: number
   /** True the first time the course is being activated. */
   isFirstPurchase: boolean
   totalPrice: number
@@ -27,7 +27,7 @@ export default function PurchaseForm({
   coursePrice,
   totalStudents,
   unpaidStudents,
-  validityDays,
+  durationDays,
   isFirstPurchase,
   totalPrice,
   depositBalance,
@@ -126,8 +126,8 @@ export default function PurchaseForm({
         <div className="purchase-label">Course</div>
         <div className="purchase-value">{courseName}</div>
 
-        <div className="purchase-label">Validity</div>
-        <div className="purchase-value">{validityDays} day{validityDays !== 1 ? 's' : ''}</div>
+        <div className="purchase-label">Duration</div>
+        <div className="purchase-value">{durationDays} day{durationDays !== 1 ? 's' : ''}</div>
 
         <div className="purchase-label">Students on Course</div>
         <div className="purchase-value">{totalStudents}</div>

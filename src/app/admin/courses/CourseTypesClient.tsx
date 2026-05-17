@@ -6,7 +6,7 @@ import type { CourseType } from '@/lib/types'
 const empty = {
   title: '',
   price: '7.00',
-  validity_days: '1',
+  duration_days: '1',
   purchase_fee: '0',
 }
 
@@ -28,7 +28,7 @@ export default function CourseTypesClient({
     setForm({
       title: ct.title,
       price: ct.price.toString(),
-      validity_days: ct.validity_days.toString(),
+      duration_days: ct.duration_days.toString(),
       purchase_fee: ct.purchase_fee.toString(),
     })
     setShowForm(true)
@@ -45,7 +45,7 @@ export default function CourseTypesClient({
     const payload = {
       title: form.title,
       price: parseFloat(form.price) || 7,
-      validity_days: parseInt(form.validity_days) || 1,
+      duration_days: parseInt(form.duration_days) || 1,
       purchase_fee: parseFloat(form.purchase_fee) || 0,
     }
 
@@ -124,14 +124,14 @@ export default function CourseTypesClient({
                   />
                 </div>
                 <div className='form-group'>
-                  <label className='form-label'>Validity (days)</label>
+                  <label className='form-label'>Duration (days)</label>
                   <input
                     type='number'
                     min='1'
                     className='form-input'
-                    value={form.validity_days}
+                    value={form.duration_days}
                     onChange={(e) =>
-                      setForm((p) => ({ ...p, validity_days: e.target.value }))
+                      setForm((p) => ({ ...p, duration_days: e.target.value }))
                     }
                   />
                 </div>
@@ -205,7 +205,7 @@ export default function CourseTypesClient({
               <tr>
                 <th>Title</th>
                 <th>Price / Student</th>
-                <th>Validity</th>
+                <th>Duration</th>
                 <th>Purchase Fee</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -224,7 +224,7 @@ export default function CourseTypesClient({
                     <td style={{ fontWeight: 500 }}>{ct.title}</td>
                     <td>${ct.price.toFixed(2)}</td>
                     <td>
-                      {ct.validity_days} day{ct.validity_days !== 1 ? 's' : ''}
+                      {ct.duration_days} day{ct.duration_days !== 1 ? 's' : ''}
                     </td>
                     <td>${ct.purchase_fee.toFixed(2)}</td>
                     <td>

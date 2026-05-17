@@ -29,24 +29,24 @@ export default function CreateCourseForm({
 
   /**
    * End date is no longer entered by the ATP. It is derived from the
-   * course's start date plus the validity/duration (in days) configured
+   * course's start date plus the duration (in days) configured
    * by the admin on the course type.
    */
   function computeEndDate(
     startDate: string,
-    validityDays: number | undefined
+    durationDays: number | undefined
   ): string | null {
-    if (!startDate || !validityDays || validityDays < 1) return null
+    if (!startDate || !durationDays || durationDays < 1) return null
     const d = new Date(startDate)
     if (isNaN(d.getTime())) return null
-    d.setDate(d.getDate() + validityDays)
+    d.setDate(d.getDate() + durationDays)
     // Return as YYYY-MM-DD (date-only column)
     return d.toISOString().slice(0, 10)
   }
 
   const computedEndDate = computeEndDate(
     form.start_date,
-    selected?.validity_days
+    selected?.duration_days
   )
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,7 +65,7 @@ export default function CreateCourseForm({
         trainer_id: form.trainer_id,
         course_title: selected?.title ?? '',
         start_date: form.start_date,
-        // Derived from start date + admin-configured validity/duration.
+        // Derived from start date + admin-configured duration.
         end_date: computedEndDate,
         reference_number: '',
       })
@@ -89,7 +89,7 @@ export default function CreateCourseForm({
       {selected && (
         <div className='alert alert-info' style={{ marginBottom: 16 }}>
           <strong>{selected.title}</strong> — ${selected.price.toFixed(2)} per
-          student · {selected.validity_days} day validity
+          student · {selected.duration_days} day duration
         </div>
       )}
 
@@ -185,9 +185,9 @@ export default function CreateCourseForm({
             style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 4 }}
           >
             {selected
-              ? `Auto-set from start date + ${selected.validity_days} day${
-                  selected.validity_days !== 1 ? 's' : ''
-                } course validity.`
+              ? `Auto-set from start date + ${selected.duration_days} day${
+                  selected.duration_days !== 1 ? 's' : ''
+                } course duration.`
               : 'Select a course and start date — the end date is set automatically.'}
           </span>
         </div>

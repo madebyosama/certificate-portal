@@ -25,7 +25,7 @@ export interface CourseType {
   id: string
   title: string
   price: number
-  validity_days: number
+  duration_days: number
   purchase_fee: number
   is_active: boolean
   created_at: string

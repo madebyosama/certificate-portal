@@ -12,7 +12,7 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const { data: course } = await supabase
     .from('courses')
-    .select('*, course_type:course_types(title,price,validity_days,purchase_fee)')
+    .select('*, course_type:course_types(title,price,duration_days,purchase_fee)')
     .eq('id', id).eq('atp_id', user.id).single()
   if (!course) notFound()
 
@@ -81,7 +81,7 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
             coursePrice={coursePrice}
             totalStudents={total}
             unpaidStudents={unpaid}
-            validityDays={course.course_type?.validity_days ?? 1}
+            durationDays={course.course_type?.duration_days ?? 1}
             isFirstPurchase={isFirstPurchase}
             totalPrice={totalPrice}
             depositBalance={depositBalance}
